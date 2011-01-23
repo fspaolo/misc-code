@@ -1,5 +1,10 @@
 ! Testing how Fortran handles binary files
 !
+! Compile and run: 
+!
+!     $ gfortran writebin.f95 -o writebin
+!     $ writebin outfile.bin 
+!
 ! Fernando Paolo <fpaolo@ucsd.edu>
 ! October 27, 2010
 

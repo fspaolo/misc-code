@@ -1,5 +1,10 @@
 ! Testing how Fortran handles binary files
 !
+! Compile and run: 
+!
+!   $ gfortran readbin.f95 -o readbin
+!   $ readbin infile.bin 
+!
 ! Fernando Paolo <fpaolo@ucsd.edu>
 ! October 27, 2010
 
