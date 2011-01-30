@@ -58,13 +58,13 @@ def bindata(x, y, z, xi, yi, ppbin=False, binval='median'):
     grid = np.empty((nrow,ncol), dtype=xi.dtype) 
     if ppbin: bins = np.copy(grid)
 
-    # step size
+    # step size (rectangular cells)
     dx = xi[1]-xi[0]
     dy = yi[1]-yi[0]
     hx = dx/2.
     hy = dy/2.
 
-    # bin data
+    # bin the data
     for row in xrange(nrow):
         for col in xrange(ncol):
             xc = xi[col]          # xc,yc = center of the bin
