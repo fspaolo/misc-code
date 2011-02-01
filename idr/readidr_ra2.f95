@@ -22,7 +22,7 @@
 ! http://fspaolo.net/code
 !
 ! For editing:
-! check the '[edit]' keywords in the code
+! check the '[edit]' keyword within the code
 !
 ! For IDR format see:
 ! http://icesat4.gsfc.nasa.gov/data_products/level2.html

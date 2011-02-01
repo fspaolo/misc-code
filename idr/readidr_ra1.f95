@@ -27,7 +27,7 @@
 ! http://fspaolo.net/code
 !
 ! For editing:
-! check the '[edit]' keywords in the code
+! check the '[edit]' keyword within the code
 !
 ! Fernando Paolo <fpaolo@ucsd.edu>
 ! December, 2009
