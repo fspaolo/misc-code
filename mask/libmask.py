@@ -1,7 +1,7 @@
 """
  Class to apply the MODIS Antarctic ice mask (from a Matlab file: *.mat).
 
- For documentation of each method see the docstrings.
+ For documentation on each method see the docstrings.
 
  Fernando Paolo <fpaolo@ucsd.edu>
  March 24, 2010
