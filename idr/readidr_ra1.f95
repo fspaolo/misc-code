@@ -16,7 +16,7 @@
 ! ------
 ! Undefined surf values are set to -9999
 ! Undefined corrections are set to 32767
-! for GFO: use 1 or 2 ?????
+! For GFO use inc: 1 (more points) or 2 (better inc)
 ! For Geosat/GM: use inc 2
 ! For Seasat, Geosat/ERM, ERS-1/2: use inc 3
 !
