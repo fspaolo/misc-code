@@ -18,11 +18,14 @@
 ! Undefined corrections are set to 32767
 ! For Envisat no need to increment !!!
 !
+! For examples on how to use the code see:
+! http://fspaolo.net/code
+!
+! For editing:
+! check the '[edit]' keywords in the code
+!
 ! For IDR format see:
 ! http://icesat4.gsfc.nasa.gov/data_products/level2.html
-!
-! For examples on how to use the code see:
-! www.fspaolo.net/code
 !
 ! Fernando Paolo <fpaolo@ucsd.edu>
 ! September 20, 2010

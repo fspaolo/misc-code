@@ -24,9 +24,10 @@
 ! http://icesat4.gsfc.nasa.gov/data_products/level2.html
 !
 ! For examples on how to use the code see:
-! www.fspaolo.net/code
+! http://fspaolo.net/code
 !
-! OBS: check the '[edit]' keywords in the code
+! For editing:
+! check the '[edit]' keywords in the code
 !
 ! Fernando Paolo <fpaolo@ucsd.edu>
 ! December, 2009
