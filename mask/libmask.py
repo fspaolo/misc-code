@@ -1,7 +1,7 @@
 """
  Class to apply the MODIS Antarctic ice mask (from a Matlab file: *.mat).
 
- For documentation of every method see the docstrings.
+ For documentation of each method see the docstrings.
 
  Fernando Paolo <fpaolo@ucsd.edu>
  March 24, 2010
@@ -13,7 +13,7 @@ import scipy.io as io
 from sys import exit
 
 try:
-    import masksearch as m  # C function for speed up
+    import masksearch as m  # C function for speed up!
     cmodule = True
     print 'C module imported!'
 except:
