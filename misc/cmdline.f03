@@ -41,7 +41,7 @@ contains
             case ('-c')
                print '(a)', arg_c
             case default
-               print '(a,a,/)', 'Unrecognized command line option: ', trim(arg)
+               print '(a,a,/)', 'unrecognized command line option: ', trim(arg)
                call print_help()
          end select
       enddo
@@ -52,7 +52,7 @@ contains
       print '(a)', ''
       print '(a)', 'options:'
       print '(a)', ''
-      print '(a)', '  -h        print usage information and exit'
+      print '(a)', '  -h        print the help message and exit'
       print '(a)', '  -a ARG_A  print the argument ARG_A'
       print '(a)', '  -b ARG_B  print the argument ARG_B'
       print '(a)', '  -c        print the default argument for -c'
