@@ -3,19 +3,18 @@
 ! Compile and run: 
 !
 !     $ gfortran writebin.f95 -o writebin
-!     $ writebin outfile.bin 
+!     $ ./writebin outfile.bin 
 !
 ! Fernando Paolo <fpaolo@ucsd.edu>
 ! October 27, 2010
 
 program writebin
     implicit none
+
     integer(4) x
     real(8) y
     logical(1) z
-    
     character(100) fname
-
     integer :: i, n = 10
     
     x = 10

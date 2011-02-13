@@ -3,22 +3,22 @@
 ! Compile and run: 
 !
 !   $ gfortran readbin.f95 -o readbin
-!   $ readbin infile.bin 
+!   $ ./readbin infile.bin 
 !
 ! Fernando Paolo <fpaolo@ucsd.edu>
 ! October 27, 2010
 
 program readbin
     implicit none
+
     type struct
         integer(4) x
         real(8) y
         logical(1) z
     endtype
+
     type(struct) dat
-
     character(100) fname
-
     integer :: ios = 0
     
     call getarg(1, fname) 
