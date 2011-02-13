@@ -181,15 +181,15 @@ program main
             !!! computations
 
             ! select pts with available geophysical corr
-            if ( &
-                  surfcheck /= -9999 .and. &
-                  ionocheck /= 32767 .and. &
-                  wetcheck /= 32767 .and. &
-                  drycheck /= 32767 .and. &
-                  stidecheck /= 32767 .and. &
-                  inccheck /= 32767 &
-                  !slopecheck /= 32767 &
-                  ) then
+            if (&
+                surfcheck /= -9999 .and. &
+                ionocheck /= 32767 .and. &
+                wetcheck /= 32767 .and. &
+                drycheck /= 32767 .and. &
+                stidecheck /= 32767 .and. &
+                inccheck /= 32767 &
+                !slopecheck /= 32767 &
+                ) then
                   
                nvalidpts = nvalidpts + 1
 

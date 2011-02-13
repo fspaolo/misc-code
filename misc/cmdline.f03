@@ -13,11 +13,11 @@ program main
    logical :: jump = .false.
    integer :: i
 
-   call read_arguments()
+   call get_arguments()
 
 contains
 
-   subroutine read_arguments()
+   subroutine get_arguments()
       if (command_argument_count() < 1) call print_help()
 
       do i = 1, command_argument_count()  ! iterate over arguments
@@ -28,14 +28,16 @@ contains
          call get_command_argument(i, arg)
 
          select case (arg)
-            case ('-h')
+            case ('-h', '--help')
                call print_help()
             case ('-a')
                call get_command_argument(i+1, arg_a)
+               if (arg_a(:1) == '-') call print_help()  ! check the arg is correct
                print '(a)', trim(arg_a)
                jump = .true.
             case ('-b')
                call get_command_argument(i+1, arg_b)
+               if (arg_b(:1) == '-') call print_help()
                print '(a)', trim(arg_b)
                jump = .true.
             case ('-c')
@@ -43,19 +45,19 @@ contains
             case default
                print '(a,a,/)', 'unrecognized command line option: ', trim(arg)
                call print_help()
-         end select
+         endselect
       enddo
-   end subroutine read_arguments
+   end subroutine get_arguments
 
    subroutine print_help()
-      print '(a)', 'usage: ./thisprog [options]'
+      print '(a)', 'usage: ./thisprog [-a ARG_A] [-b ARG_B] [-c] [-h]'
       print '(a)', ''
       print '(a)', 'options:'
       print '(a)', ''
-      print '(a)', '  -h        print the help message and exit'
-      print '(a)', '  -a ARG_A  print the argument ARG_A'
-      print '(a)', '  -b ARG_B  print the argument ARG_B'
-      print '(a)', '  -c        print the default argument for -c'
+      print '(a)', '  -h, --help  print the help message and exit'
+      print '(a)', '  -a ARG_A    print the argument ARG_A'
+      print '(a)', '  -b ARG_B    print the argument ARG_B'
+      print '(a)', '  -c          print the default argument for -c'
       stop
    end subroutine print_help
 
