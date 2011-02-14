@@ -10,7 +10,6 @@
 ! 
 ! To compile: gfortran -fconvert=big-endian thisprog.f95 -o thisprog 
 ! To run: ./thisprog file1 file2 file3 ... 
-! For binary output set: ASCII = .false.
 !
 ! Notes:
 ! ------
@@ -96,33 +95,29 @@ program main
    integer(2) :: stidecheck, otidecheck, slopecheck, inccheck
    integer(2) :: fret, fprob, fmode, fotide
 
-   character(100) :: infile, outfile
-   integer :: nfiles, npts, nvalidpts, nrec, iargc, narg, ios, i
-   logical :: filecreated
+   character(100) :: arg, infile, outfile, outdir, incr
+   integer :: nfiles, npts, nvalidpts, nrec, nopt, ios, i
+   logical :: filecreated, ascii
 
-   logical, parameter :: ASCII = .true.   ! .false. for Binary output    [edit]
-   integer, parameter :: RECLEN = 100     ! record length in bytes
-   real(8), parameter :: MJD85 = 46066.   ! 1-Jan-1985 00:00:00h in MJD
-   real(8), parameter :: DAYSECS = 86400. ! 1 day in seconds 
+   integer, parameter :: RECLEN = 100      ! record length in bytes
+   real(8), parameter :: MJD85 = 46066.    ! 1-Jan-1985 00:00:00h in MJD
+   real(8), parameter :: DAYSECS = 86400.  ! 1 day in seconds 
 
-   narg = iargc()
-   if (narg < 1) stop 'usage: ./thisprog file1 file2 ... (see code for edition)'
+   ascii = .true.; nopt = 0; outdir = 'None'; incr = '3'
+   call get_arguments()
 
-   print *, 'processing files:', narg, '...'
+   print '(a,i9,a)', 'processing files: ', command_argument_count()-nopt, ' ...'
  
    ! iterate over input files
-   nfiles = 0
-   npts = 0
-   nvalidpts = 0
-   do i = 1, narg
-      call getarg(i, infile)       ! get arg in position i -> infile
+   nfiles = 0; npts = 0; nvalidpts = 0
+   do i = nopt+1, command_argument_count() 
+
+      call get_command_argument(i, infile)  ! get arg(i) -> infile
       open(1, file=infile, status='old', access='direct', &
              form='unformatted', recl=RECLEN)
  
       ! iterate over records
-      filecreated = .false.
-      nrec = 1
-      ios = 0
+      filecreated = .false.; nrec = 1; ios = 0
       do 
          read(1, rec=nrec, iostat=ios) idr
          if (ios /= 0) exit            ! if EOF
@@ -147,7 +142,18 @@ program main
             surf = idr%surf / 1e2       ! surface elevation (m)
             otide = idr%otide / 1e3     ! ocean tide correction (m)
             agc = idr%agc / 1e2         ! automatic gain control (dB)
-            inc = idr%inc1 / 1e2        ! orbit correction (m)                  [edit]
+
+            select case (incr)
+               case ('1')
+                  inc = idr%inc1 / 1e2  ! orbit correction (m)
+                  inccheck = idr%inc1   ! check orbit increment
+               case ('2')
+                  inc = idr%inc2 / 1e2     
+                  inccheck = idr%inc2      
+               case default
+                  inc = idr%inc3 / 1e2     
+                  inccheck = idr%inc3      
+            endselect
 
             retstat = idr%retstat1      ! retracking status flags (15-0)
             surfstat = idr%surfstat     ! surface status flags (31-0)
@@ -158,7 +164,6 @@ program main
             stidecheck = idr%stide      ! check solid tide
             otidecheck = idr%otide      ! check ocean tide
             slopecheck = idr%slope      ! check slope corr
-            inccheck = idr%inc1         ! check orbit increment                [edit]
             !-------------------------------------------------------
 
             ! Flags: big-end: 0-15 (lsb) -> little-end: 15-0 (msb)
@@ -205,13 +210,23 @@ program main
  
                !!! output
  
-               if (ASCII .and. .not. filecreated) then 
-                  outfile = trim(infile) // '.txt'   ! ext for ASCII
+               if (ascii .and. .not. filecreated) then 
+                  if (outdir /= 'None') then
+                     call split_path()
+                     outfile = trim(outdir) // '/' // trim(infile) // '.txt'
+                  else
+                     outfile = trim(infile) // '.txt'
+                  endif
                   open(2, file=outfile, status='unknown', form='formatted')
                   filecreated = .true.
                   nfiles = nfiles + 1
                else if (.not. filecreated) then
-                  outfile = trim(infile) // '.bin'   ! ext for Binary
+                  if (outdir /= 'None') then
+                     call split_path()
+                     outfile = trim(outdir) // '/' // trim(infile) // '.bin'
+                  else
+                     outfile = trim(infile) // '.bin'
+                  endif
                   open(2, file=outfile, status='unknown', form='unformatted')
                   filecreated = .true.
                   nfiles = nfiles + 1
@@ -219,8 +234,8 @@ program main
  
                if (lon < 0) lon = lon + 360.          ! output lon: 0/360
  
-               if (ASCII) then
-                  write(2, '(i6, f20.6, 2f14.6, 2f14.3, 3i2)') &                ! [edit]
+               if (ascii) then
+                  write(2, '(i6, f20.6, 2f14.6, 2f14.3, 3i2)') &           ! [edit]
                      orbit, utc85, lat, lon, surf, agc, fmode, fret, fprob
                else
                   write(2) & 
@@ -234,14 +249,87 @@ program main
       close(1)
    enddo
 
-   !print *, 'number of records:     ', nrec-1
-   print *, 'number of points:      ', npts 
-   print *, 'number of valid points:', nvalidpts 
-   print *, 'files created:         ', nfiles
-   if (ASCII) then 
-      print *, 'output extension: .txt' 
+   !print (a,i9), 'number of records:     ', nrec-1
+   print '(a,i9)', 'number of points:      ', npts 
+   print '(a,i9)', 'number of valid points:', nvalidpts 
+   print '(a,i9)', 'files created:         ', nfiles
+   if (ascii) then 
+      print '(a)', 'output extension: .txt' 
    else
-      print *, 'output extension: .bin' 
+      print '(a)', 'output extension: .bin' 
    endif   
+
+contains
+
+   subroutine get_arguments()
+      implicit none
+      integer :: k
+      logical :: jump = .false.
+
+      if (command_argument_count() < 1) call print_help()
+
+      do k = 1, command_argument_count()  ! iterate over arguments
+         if (jump) then                   ! jump one iteration
+             jump = .false.
+             cycle
+         endif
+         call get_command_argument(k, arg)
+
+         select case (arg)
+            case ('-h', '--help')
+               call print_help()
+            case ('-b')
+               ascii = .false.
+               print '(a)', 'output format: binary'
+               nopt = nopt + 1
+            case ('-d')
+               call get_command_argument(k+1, outdir)
+               if (outdir(:1) == '-' .or. outdir == '') call print_help()
+               print '(a,a)', 'output dir: ', trim(outdir)
+               nopt = nopt + 2
+               jump = .true.
+            case ('-i')
+               call get_command_argument(k+1, incr)
+               if (incr(:1) == '-' .or. incr == '') call print_help()
+               print '(a,a)', 'orbit increment: ', trim(incr)
+               nopt = nopt + 2
+               jump = .true.
+            case default
+               if (arg(:1) == '-') then 
+                  print '(a,a,/)', 'unrecognized command line option: ', trim(arg)
+                  call print_help()
+               else
+                  exit
+               endif
+         endselect
+      enddo
+   end subroutine get_arguments
+
+   subroutine split_path()
+      implicit none
+      character(100) :: infile
+      integer :: j
+      do j = len(infile), 1, -1
+         if (infile(j:j) == '/') then 
+             infile = trim(infile(j+1:))
+             exit
+         endif
+      enddo
+   end subroutine split_path
+
+   subroutine print_help()
+      print '(a)', 'usage: ./readidr_ra1 [-h] [-b] [-i 1|2|3] [-d /output/dir] file1 file2 ...'
+      print '(a)', ''
+      print '(a)', 'required arguments:'
+      print '(a)', '  files       input files to read [ex /path/to/*.ID04]'
+      print '(a)', '              note: files always at the end!'
+      print '(a)', ''
+      print '(a)', 'optional arguments:'
+      print '(a)', '  -h, --help  print usage information and exit'
+      print '(a)', '  -b          for binary output files [default ASCII]'
+      print '(a)', '  -i 1|2|3    use orbit increment 1, 2 or 3 [default 3]'
+      print '(a)', '  -d          the output dir [default same as input file]'
+      stop
+   end subroutine print_help
 
 end program main

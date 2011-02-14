@@ -32,12 +32,12 @@ contains
                call print_help()
             case ('-a')
                call get_command_argument(i+1, arg_a)
-               if (arg_a(:1) == '-') call print_help()  ! check the arg is correct
+               if (arg_a(:1) == '-' .or. arg_a == '') call print_help()  ! check the arg is correct
                print '(a)', trim(arg_a)
                jump = .true.
             case ('-b')
                call get_command_argument(i+1, arg_b)
-               if (arg_b(:1) == '-') call print_help()
+               if (arg_b(:1) == '-' .or. arg_b == '') call print_help()
                print '(a)', trim(arg_b)
                jump = .true.
             case ('-c')
@@ -50,10 +50,9 @@ contains
    end subroutine get_arguments
 
    subroutine print_help()
-      print '(a)', 'usage: ./thisprog [-a ARG_A] [-b ARG_B] [-c] [-h]'
+      print '(a)', 'usage: ./thisprog [-h] [-a ARG_A] [-b ARG_B] [-c]'
       print '(a)', ''
       print '(a)', 'options:'
-      print '(a)', ''
       print '(a)', '  -h, --help  print the help message and exit'
       print '(a)', '  -a ARG_A    print the argument ARG_A'
       print '(a)', '  -b ARG_B    print the argument ARG_B'
