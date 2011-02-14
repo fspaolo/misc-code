@@ -1,4 +1,4 @@
-! Read 100-Byte IDR files: Seasat, Geosat, GFO and ERS-1/2
+! Read 100-Byte IDR files: Seasat, Geosat, GFO and ERS-1/-2
 !
 ! * convert MJD to time in seconds since 1-Jan-1985 (aka utc85 or ESA time)
 ! * unapply (add) tide correction (if applied), for later use of better ones
@@ -7,9 +7,12 @@
 ! * filter out points with undefined elevation values
 ! * filter out points with unavailable geophysical corrections
 ! * save to ASCII or Binary format (same_original_name.txt or .bin)
+! * save output files to specified output directory
+! * all arguments are passed trough the command line
 ! 
-! To compile: gfortran -fconvert=big-endian thisprog.f95 -o thisprog 
-! To run: ./thisprog file1 file2 file3 ... 
+! Usage:
+! gfortran -fconvert=big-endian readidr_ra1.f90 -o readidr_ra1 
+! ./readidr_ra1 -h
 !
 ! Notes:
 ! ------
@@ -17,16 +20,17 @@
 ! Undefined corrections are set to 32767
 ! For GFO use inc: 2 (better inc) or 1 (more points)
 ! For Geosat/GM: use inc 2
-! For Seasat, Geosat/ERM, ERS-1/2: use inc 3
+! For Seasat, Geosat/ERM, ERS-1/-2: use inc 3
 !
 ! For IDR format see:
-! http://icesat4.gsfc.nasa.gov/data_products/level2.html
+! http://icesat4.gsfc.nasa.gov/data_products/level2.php
 !
 ! For examples on how to use the code see:
 ! http://fspaolo.net/code
 !
-! For editing:
-! check the '[edit]' keyword within the code
+! Obs:
+! ----
+! This program follows the Fortran 2003 standard.
 !
 ! Fernando Paolo <fpaolo@ucsd.edu>
 ! December, 2009
