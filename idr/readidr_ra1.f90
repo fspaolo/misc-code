@@ -311,7 +311,6 @@ contains
 
    subroutine split_path()
       implicit none
-      character(100) :: infile
       integer :: j
       do j = len(infile), 1, -1
          if (infile(j:j) == '/') then 
