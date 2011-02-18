@@ -1,8 +1,8 @@
 ! Read 100-Byte IDR files: Seasat, Geosat, GFO and ERS-1/-2
 !
 ! * convert MJD to time in seconds since 1-Jan-1985 (aka utc85 or ESA time)
-! * unapply (add) tide correction (if applied), for later use of better ones
-! * apply selected increment for orbit correction (if defined)
+! * unapply (add) tide correction, for later use of better ones
+! * apply selected increment for orbit correction
 ! * check flags for 'retracked' and 'problem retracking'
 ! * filter out points with undefined elevation values
 ! * filter out points with unavailable geophysical corrections
@@ -324,7 +324,7 @@ contains
       print '(a)', 'usage: ./readidr_ra1 [-h] [-b] [-i 1|2|3] [-d /output/dir] file1 file2 ...'
       print '(a)', ''
       print '(a)', 'required arguments:'
-      print '(a)', '  files       input files to read [ex /path/to/*.ID04]'
+      print '(a)', '  files       input files to read [ex: /path/to/*.ID04]'
       print '(a)', '              note: files always at the end!'
       print '(a)', ''
       print '(a)', 'optional arguments:'
