@@ -56,7 +56,7 @@ class Mask:
 
     def mapll(self, lat, lon, slat=71, slon=-70, hemi='s'):
         """
-        Converts from 'lat,lon' to polar stereographic 'x,y'.
+        Convert from 'lat,lon' to polar stereographic 'x,y'.
      
         This function converts from geodetic latitude and longitude to
         polar stereographic 'x,y' coordinates for the polar regions. The 
@@ -101,7 +101,7 @@ class Mask:
         >>> x, y = m.mapll(lat, lon, 71, -70, 's')
         """
 
-        print 'lat,lon -> x,y ...'
+        print 'converting lat,lon -> x,y ...'
         # definition of constants:
         CDR = 57.29577951     # conversion degrees to radians (180/pi)
         E2 = 6.694379852*1e-3 # eccentricity squared
@@ -145,7 +145,7 @@ class Mask:
      
     def mapxy(self, x, y, slat=71, slon=-70, hemi='s'):
         """
-        Converts from polar stereographic 'x,y' to 'lat,lon'.
+        Convert from polar stereographic 'x,y' to 'lat,lon'.
      
         This subroutine converts from Polar Stereographic 'x,y' coordinates 
         to geodetic latitude and longitude for the polar regions. The 
@@ -187,7 +187,7 @@ class Mask:
         >>> y = [  365.97940112 -1142.96735458   268.05756254]
         >>> lat, lon = m.mapxy(x, y, 71, -70, 's')
         """
-        print 'x,y -> lat,lon ...'
+        print 'converting x,y -> lat,lon ...'
         # definition of constants:
         CDR = 57.29577951     # conversion degrees to radians (180/pi)
         E2 = 6.694379852*1e-3 # eccentricity squared
