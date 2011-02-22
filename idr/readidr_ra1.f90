@@ -326,7 +326,7 @@ contains
    end subroutine split_path
 
    subroutine print_help()
-      print '(a)', 'usage: ./readidr_ra1 [-h] [-b] [-i 1|2|3] [-d /output/dir] file1 file2 ...'
+      print '(a)', 'usage: ./readidr_ra1 [-h] [-v] [-b] [-i 1|2|3] [-d /output/dir] file1 file2 ...'
       print '(a)', ''
       print '(a)', 'required arguments:'
       print '(a)', '  files       input files to read [ex: /path/to/*.ID04]'
