@@ -101,13 +101,13 @@ program main
 
    character(100) :: arg, infile, outfile, outdir, incr
    integer :: nfiles, npts, nvalidpts, nrec, nopt, ios, i
-   logical :: filecreated, ascii
+   logical :: filecreated, ascii, verbose
 
    integer, parameter :: RECLEN = 100      ! record length in bytes
    real(8), parameter :: MJD85 = 46066.    ! 1-Jan-1985 00:00:00h in MJD
    real(8), parameter :: DAYSECS = 86400.  ! 1 day in seconds 
 
-   ascii = .true.; nopt = 0; outdir = 'None'; incr = '3'
+   ascii = .true.; nopt = 0; outdir = 'None'; incr = '3'; verbose = .false.
    call get_arguments()
 
    print '(a,i9,a)', 'processing files: ', command_argument_count()-nopt, ' ...'
@@ -119,6 +119,8 @@ program main
       call get_command_argument(i, infile)  ! get arg(i) -> infile
       open(1, file=infile, status='old', access='direct', &
              form='unformatted', recl=RECLEN)
+
+      if (verbose) print '(a,a)', 'file: ', infile
  
       ! iterate over records
       filecreated = .false.; nrec = 1; ios = 0
@@ -282,6 +284,9 @@ contains
          select case (arg)
             case ('-h', '--help')
                call print_help()
+            case ('-v')
+               verbose = .true.
+               nopt = nopt + 1
             case ('-b')
                ascii = .false.
                print '(a)', 'output format: binary'
@@ -329,9 +334,10 @@ contains
       print '(a)', ''
       print '(a)', 'optional arguments:'
       print '(a)', '  -h, --help  print usage information and exit'
-      print '(a)', '  -b          for binary output files [default ASCII]'
-      print '(a)', '  -i 1|2|3    use orbit increment 1, 2 or 3 [default 3]'
-      print '(a)', '  -d          the output dir [default same as input file]'
+      print '(a)', '  -v          for verbose [default: run silent]'
+      print '(a)', '  -b          for binary output files [default: ASCII]'
+      print '(a)', '  -i 1|2|3    use orbit increment 1, 2 or 3 [default: 3]'
+      print '(a)', '  -d          the output dir [default: same as input file]'
       stop
    end subroutine print_help
 
