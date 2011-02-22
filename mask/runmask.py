@@ -18,14 +18,14 @@ parser = ap.ArgumentParser()
 parser.add_argument('file', nargs='+', help='HDF5/ASCII file[s] to read')
 parser.add_argument('-m', dest='mfile', default='mask_ice_1km_2008_0410c.mat', 
                     help='name of mask file (.mat) [mask_ice_1km_2008_0410c.mat]')  
-parser.add_argument('-b', dest='border', default=7, type=int,
-                    help='cut-off distance in km from any border [7 km]')  
+parser.add_argument('-b', dest='border', default=3, type=int,
+                    help='cut-off distance in km from any border [default: 3 km]')  
 parser.add_argument('-x', dest='loncol', default=3, type=int,
-                    help='column of longitude in the file (0,1,..) [3]')  
+                    help='column of longitude in the file (0,1,..) [default: 3]')  
 parser.add_argument('-y', dest='latcol', default=2, type=int,
-                    help='column of latitude in the file (0,1,..) [2]')  
+                    help='column of latitude in the file (0,1,..) [default: 2]')  
 parser.add_argument('-a', dest='ascii', default=False, action='store_const',
-                    const=True, help='reads and writes ASCII files [default HDF5]')
+                    const=True, help='read and write ASCII files [default: HDF5]')
 
 args = parser.parse_args()
 files = args.file
