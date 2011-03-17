@@ -1,5 +1,5 @@
 """
- Script to use the class mask and apply it to a several HDF5/ASCII files.
+ Script to use the class Mask and apply it to a several HDF5/ASCII files.
 
  Fernando Paolo <fpaolo@ucsd.edu>
  October 29, 2010
@@ -8,24 +8,28 @@
 import numpy as np
 import tables as tb
 import argparse as ap
-from sys import exit
+import sys
 import os
 
-import libmask
+import libmask  # Mask module
+
+np.seterr(all='warn')  # warn floating point errors
 
 # parse command line arguments
 parser = ap.ArgumentParser()
 parser.add_argument('file', nargs='+', help='HDF5/ASCII file[s] to read')
-parser.add_argument('-m', dest='mfile', default='mask_ice_1km_2008_0410c.mat', 
-                    help='name of mask file (.mat) [mask_ice_1km_2008_0410c.mat]')  
+parser.add_argument('-f', dest='mfile', default='mask_ice_1km_2008_0410c.h5', 
+    help='name of mask file (.h5 or .mat) [mask_ice_1km_2008_0410c.h5]')  
 parser.add_argument('-b', dest='border', default=3, type=int,
-                    help='cut-off distance in km from any border [default: 3 km]')  
+    help='cut-off distance in km from any border [default: 3 km]')  
 parser.add_argument('-x', dest='loncol', default=3, type=int,
-                    help='column of longitude in the file (0,1,..) [default: 3]')  
+    help='column of longitude in the file (0,1,..) [default: 3]')  
 parser.add_argument('-y', dest='latcol', default=2, type=int,
-                    help='column of latitude in the file (0,1,..) [default: 2]')  
+    help='column of latitude in the file (0,1,..) [default: 2]')  
 parser.add_argument('-a', dest='ascii', default=False, action='store_const',
-                    const=True, help='read and write ASCII files [default: HDF5]')
+    const=True, help='read and write ASCII files [default: HDF5]')
+parser.add_argument('-m', dest='inmemory', default=False, action='store_const',
+    const=True, help='load data in-memory (faster) [default: on-disk]')
 
 args = parser.parse_args()
 files = args.file
@@ -34,6 +38,7 @@ border = args.border
 loncol = args.loncol
 latcol = args.latcol
 ascii = args.ascii
+inmemory = args.inmemory
 
 if ascii:
     ext = '_mask.txt'
@@ -54,22 +59,33 @@ for f in files:
     if ascii:
         data = np.loadtxt(f)
     else:
-        h5f = tb.openFile(f)
-        data = h5f.root.data.read()
-        h5f.close()
+        fin = tb.openFile(f)
+        if inmemory:
+            data = fin.root.data.read()  # in-memory
+        else:
+            data = fin.root.data         # out-of-memory
 
     try:
-        data = m.applymask(data, latcol=latcol, loncol=loncol, border=border)
+        dataout = m.applymask(data[ind,:], latcol=latcol, loncol=loncol, border=border)
     except:
-        print '\n********** something went wrong **********\n'
+        print '\n***** something went wrong!\n'
+        print '***** file:', f
         continue
 
     if ascii:
-        np.savetxt(os.path.splitext(f)[0] + ext, data, fmt='%f')
+        np.savetxt(os.path.splitext(f)[0] + ext, dataout, fmt='%f')
     else:
-        h5f = tb.openFile(os.path.splitext(f)[0] + ext, 'w')
-        h5f.createArray(h5f.root, 'data', data)
-        h5f.close()
+        fout = tb.openFile(os.path.splitext(f)[0] + ext, 'w')
+        atom = tb.Atom.from_dtype(dataout.dtype)
+        filters = tb.Filters(complib='blosc', complevel=5)
+        dout = fout.createCArray(fout.root,'data', atom=atom, shape=dataout.shape,
+                                 filters=filters)
+        dout[:] = dataout
+        fout.close()
 
-print 'done!'
+    if not ascii and fin.isopen: 
+        fin.close()
+
+m.closemask()  # close HDF5 mask file
+print 'done.'
 print 'output ext: %s' % ext

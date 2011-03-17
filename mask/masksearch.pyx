@@ -26,6 +26,7 @@ def mask_search(np.ndarray[SHORT, ndim=1] x,
         x_i = x[i]
         y_i = y[i]
 
+        # if data point within mask limits
         if x_mask[0]+R < x_i and x_i < x_mask[-1]-R and \
            y_mask[0]+R < y_i and y_i < y_mask[-1]-R:
 
@@ -35,8 +36,8 @@ def mask_search(np.ndarray[SHORT, ndim=1] x,
             flags[i,0] = f 
 
             # neighboring values on a square 2Rx2R -> border flag: 0/1
-            if (m_mask[<unsigned int>(row-R):<unsigned int>(row+R+1), \
-                       <unsigned int>(col-R):<unsigned int>(col+R+1)] == f).all():
+            if np.alltrue(m_mask[<unsigned int>(row-R):<unsigned int>(row+R+1), \
+                                 <unsigned int>(col-R):<unsigned int>(col+R+1)] == f):
                 flags[i,1] = 0    # if all True
             else:                                          
                 flags[i,1] = 1    # else is border

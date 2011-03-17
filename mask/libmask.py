@@ -1,5 +1,5 @@
 """
- Class to apply the MODIS Antarctic ice mask (from a Matlab file: *.mat).
+ Module to apply the MODIS Antarctic ice mask.
 
  For documentation on each method see the docstrings.
 
@@ -8,12 +8,14 @@
 """
 
 import numpy as np
+import tables as tb
 import string as str
 import scipy.io as io
-from sys import exit
+import sys 
+import os
 
 try:
-    import masksearch as m  # C function for speed up!
+    import masksearch as m   # C function for speed up!
     cmodule = True
     print 'C module imported!'
 except:
@@ -21,42 +23,69 @@ except:
     print "couln't import C module!"
 
 class Mask:
-    """
-    Class to apply the MODIS Antarctic ice mask.
-    """
+
+    """Class to apply the MODIS Antarctic ice mask."""
+
     def __init__(self, maskfile=None):
         if maskfile is not None:
-            self.getmask(maskfile)    # see bellow
+            if os.path.splitext(maskfile)[1] == '.mat':
+                self.getmask_mat(maskfile)    # Matlab file 
+            else:
+                self.getmask(maskfile)        # HDF5 files
         else:
-            self.maskfile = maskfile
+            self.maskfile = None 
 
 
-    def getmask(self, maskfile):
-        """
-        Get mask from Matlab file.
-        """
+    def getmask_mat(self, maskfile):
+
+        """Get mask from Matlab file (*.mat)."""
+
         try:
             print 'loading mask file:', maskfile, '...'
             mfile = io.loadmat(maskfile, squeeze_me=True, struct_as_record=True)
             MASK = mfile['MASK'].item()
-            m_mask = MASK[7]
-            x_mask = MASK[0]
-            y_mask = MASK[1]
+            self.m_mask = MASK[7]
+            self.x_mask = MASK[0]
+            self.y_mask = MASK[1]
+            self.maskfile = maskfile
+            print 'MASK: flags [2D] =', np.shape(self.m_mask), ', y [1D] =', \
+                np.shape(self.y_mask), ', x [1D] =', np.shape(self.x_mask)
         except:
             print 'error: getmask: something wrong with the file: %s' % maskfile
-            exit()
-        print 'MASK: flags [2D] =', np.shape(m_mask), ', y [1D] =', \
-              np.shape(y_mask), ', x [1D] =', np.shape(x_mask)
+            raise
+    
+
+    def getmask(self, maskfile):
+
+        """Get mask from HDF5 file (*.h5)."""
+
+        try:
+            print 'loading mask file:', maskfile, '...'
+            self.fmask = tb.openFile(maskfile, 'r')  # don't forget to close!
+            self.m_mask = self.fmask.root.mask.read()
+            self.x_mask = self.fmask.root.x.read()
+            self.y_mask = self.fmask.root.y.read()
+            self.maskfile = maskfile
+            print 'MASK: flags [2D] =', np.shape(self.m_mask), ', y [1D] =', \
+                np.shape(self.y_mask), ', x [1D] =', np.shape(self.x_mask)
+        except:
+            print 'error: getmask: something wrong with the file: %s' % maskfile
+            raise
               
-        self.m_mask = m_mask
-        self.x_mask = x_mask
-        self.y_mask = y_mask
-        self.maskfile = maskfile
+
+    def closemask(self):
+        
+        """Close the opened HDF5 mask file."""
+
+        try:
+            if self.fmask.isopen: self.fmask.close()
+        except:
+            pass
 
 
     def mapll(self, lat, lon, slat=71, slon=-70, hemi='s'):
-        """
-        Convert from 'lat,lon' to polar stereographic 'x,y'.
+
+        """Convert from 'lat,lon' to polar stereographic 'x,y'.
      
         This function converts from geodetic latitude and longitude to
         polar stereographic 'x,y' coordinates for the polar regions. The 
@@ -68,7 +97,7 @@ class Mask:
         Parameters
         ----------
         lat, lon : array_like or float 
-            Geodetic latitude and longitude (degrees, -/+90 and -/+180 | 0/360).
+            Geodetic latitude and longitude (degrees, -/+90 and -/+180|0/360).
         slat : float
             Standard latitude (e.g., 71).
         slon : float
@@ -98,8 +127,7 @@ class Mask:
         >>> m = Mask()
         >>> lat = [70.2, 75.5, 80.3]
         >>> lon = [-150.3, 66.2, 5.3]
-        >>> x, y = m.mapll(lat, lon, 71, -70, 's')
-        """
+        >>> x, y = m.mapll(lat, lon, 71, -70, 's')"""
 
         print 'converting lat,lon -> x,y ...'
         # definition of constants:
@@ -110,15 +138,15 @@ class Mask:
         RE = 6378.1370        # updated 2/11/08 (see email from Shad O'Neel)
         #RE = 6378.273        # original value
      
-        if type(lat).__name__ != 'ndarray':
-            lat = np.array(lat, 'f8')        # convert to ndarray
-        if type(lon).__name__ != 'ndarray':
-            lon = np.array(lon, 'f8') 
+        #if type(lat).__name__ != 'ndarray':
+        #    lat = np.array(lat, 'f8')        # convert to ndarray
+        #if type(lon).__name__ != 'ndarray':
+        #    lon = np.array(lon, 'f8') 
      
-        if lon.ndim > 0: 
+        if lon.ndim > 0:                     # array
             lon[lon<0] += 360                # -/+180 -> 0/360
-        elif lon < 0: 
-            lon += 360
+        elif lon < 0:                        # scalar
+            lon += 360                    
      
         if (str.lower(hemi) == 's'):
             SGN = -1
@@ -144,8 +172,8 @@ class Mask:
      
      
     def mapxy(self, x, y, slat=71, slon=-70, hemi='s'):
-        """
-        Convert from polar stereographic 'x,y' to 'lat,lon'.
+
+        """Convert from polar stereographic 'x,y' to 'lat,lon'.
      
         This subroutine converts from Polar Stereographic 'x,y' coordinates 
         to geodetic latitude and longitude for the polar regions. The 
@@ -185,8 +213,8 @@ class Mask:
         >>> m = Mask()
         >>> x = [-2141.06767831  1096.06628549  1021.77465469]
         >>> y = [  365.97940112 -1142.96735458   268.05756254]
-        >>> lat, lon = m.mapxy(x, y, 71, -70, 's')
-        """
+        >>> lat, lon = m.mapxy(x, y, 71, -70, 's')"""
+
         print 'converting x,y -> lat,lon ...'
         # definition of constants:
         CDR = 57.29577951     # conversion degrees to radians (180/pi)
@@ -196,10 +224,10 @@ class Mask:
         RE = 6378.1370        # updated 2/11/08 (see email from Shad O'Neel)
         #RE = 6378.273        # original value
      
-        if type(x).__name__ != 'ndarray':
-            x = np.array(x, 'f8')          # convert to ndarray double
-        if type(y).__name__ != 'ndarray':
-            y = np.array(y, 'f8')
+        #if type(x).__name__ != 'ndarray':
+        #    x = np.array(x, 'f8')          # convert to ndarray double
+        #if type(y).__name__ != 'ndarray':
+        #    y = np.array(y, 'f8')
      
         if(str.lower(hemi) == 's'):
             SGN = -1
@@ -241,9 +269,9 @@ class Mask:
 
 
     def applymask(self, data, latcol=2, loncol=3, slat=71, slon=-70, \
-                  hemi='s', border=7):
-        """
-        Apply the mask to a data set given the conditions.
+                  hemi='s', border=3):
+
+        """Apply the mask to a data set given the conditions.
         
         Parameters
         ----------
@@ -271,101 +299,110 @@ class Mask:
         Example
         -------
         >>> m = Mask('maskfilename')
-        >>> outdata = m.applymask(data, latcol=1, loncol=2, border=7)
-        """
-        if type(data).__name__ != 'ndarray':
-            print "error: applymask: 'data' must be ndarray:"
-            print 'you may want to do the following:'
-            print '>>> import numpy as np'
-            print '>>> data = np.array(data)'
-            exit()
+        >>> dataout = m.applymask(data, latcol=1, loncol=2, border=7)"""
+
+        #if type(data).__name__ != 'ndarray':
+        #    print "error: applymask: 'data' must be ndarray:"
+        #    print 'you may want to do the following:'
+        #    print '>>> import numpy as np'
+        #    print '>>> data = np.array(data)'
+        #    sys.exit()
+
         if self.maskfile is None:
             print 'error: applymask: get mask file first:'
             print '>>> m = Mask()'
             print ">>> m.getmask('fname')"
             print 'then you can do:'
             print '>>> m.applymask(data, latcol, loncol,...)'
-            exit()
+            sys.exit()
      
-        m_mask = self.m_mask.astype('i2')
-        x_mask = self.x_mask.astype('i2')
-        y_mask = self.y_mask.astype('i2')
-
+        #ind, = np.where((-90 <= data[:,latcol]) & (data[:,latcol] >= 90) &
+        #                (-180 <= data[:,loncol]) & (data[:,loncol] >= 360))
         x, y = self.mapll(data[:,latcol], data[:,loncol], slat, slon, hemi)
      
         ndata = data.shape[0]
         flags = np.ones((ndata,2), 'i2') # 1 = water
         flags[:,1] = 0                   # 0 = no-border
-        x = np.rint(x).astype('i2')      # round to nearest integer !
-        y = np.rint(y).astype('i2')
+        x = np.rint(x)                   # round to nearest integer !!!
+        y = np.rint(y)
         R = border
      
         # data bounds
         x_min = x.min(); x_max = x.max()
         y_min = y.min(); y_max = y.max()
 
-        # shortens the mask for faster searching
+        # shortens the mask for faster searching (if needed)
         resize = False
-        if x_mask[0] < x_min-R:                 # mask larger than data+R
-            jmin, = np.where(x_mask == x_min-R) 
+        if self.x_mask[0] < x_min-R:                 # mask larger than data+R
+            jmin, = np.where(self.x_mask == x_min-R) 
             resize = True
         else:                                   # data larger than mask
             jmin = 0                            # use mask bounds
-        if y_mask[0] < y_min-R:
-            imin, = np.where(y_mask == y_min-R) 
+        if self.y_mask[0] < y_min-R:
+            imin, = np.where(self.y_mask == y_min-R) 
             resize = True
         else:
             imin = 0
-        if x_mask[-1] > x_max+R:
-            jmax, = np.where(x_mask == x_max+R) 
+        if self.x_mask[-1] > x_max+R:
+            jmax, = np.where(self.x_mask == x_max+R) 
             resize = True
         else:
-            jmax = x_mask.shape[0]-1
-        if y_mask[-1] > y_max+R:
-            imax, = np.where(y_mask == y_max+R)
+            jmax = self.x_mask.shape[0]-1
+        if self.y_mask[-1] > y_max+R:
+            imax, = np.where(self.y_mask == y_max+R)
             resize = True
         else:
-            imax = y_mask.shape[0]-1
+            imax = self.y_mask.shape[0]-1
 
+        '''
         if resize:
             x_mask = x_mask[jmin:jmax+1]
             y_mask = y_mask[imin:imax+1]
             m_mask = m_mask[imin:imax+1, jmin:jmax+1]
+        '''
         
         print 'applying mask ...'
 
         # C function for speed up-----------------------------------
         if cmodule:
-            m.mask_search(x, y, x_mask, y_mask, m_mask, flags, R)
+            m.mask_search(x.astype('i2'), 
+                          y.astype('i2'), 
+                          self.x_mask[jmin:jmax+1].astype('i2'), 
+                          self.y_mask[imin:imax+1].astype('i2'), 
+                          self.m_mask[imin:imax+1, jmin:jmax+1].astype('i2'), 
+                          flags, 
+                          R)
         #-----------------------------------------------------------
         else:
             # search the flag in the mask
             for i in xrange(ndata):
                 x_i = x[i]; y_i = y[i]
 
-                if x_mask[0]+R < x_i and x_i < x_mask[-1]-R and \
-                   y_mask[0]+R < y_i and y_i < y_mask[-1]-R:
+                if self.x_mask[jmin]+R < x_i and x_i < self.x_mask[jmax+1]-R and \
+                   self.y_mask[imin]+R < y_i and y_i < self.y_mask[imax+1]-R:
                     
-                    row, = np.where(y_mask == y_i)
-                    col, = np.where(x_mask == x_i)
-                    f =  m_mask[row,col]          # 0=land/1=water/2=ice-shelf
+                    row, = np.where(self.y_mask[imin:imax+1] == y_i)
+                    col, = np.where(self.x_mask[jmin:jmax+1] == x_i)
+                    f = self.m_mask[imin+row,jmin+col]  # 0=land/1=water/2=ice-shelf
                     flags[i,0] = f                
 
                     # neighboring values on a square 2Rx2R -> border flag: 0/1
-                    if (m_mask[row-R:row+R+1, col-R:col+R+1] == f).all():  
+                    if np.alltrue(self.m_mask[imin+row-R:imin+row+R+1, 
+                                              jmin+col-R:jmin+col+R+1] == f):  
                         flags[i,1] = 0     # if all True
                     else:                                             
                         flags[i,1] = 1     # else is border
+        #-----------------------------------------------------------
 
-        data = np.column_stack((data, flags))  # add colum with flags
+        dataout = np.column_stack((data, flags))  # add colum with flags
      
-        return data
+        return dataout
 
 
     def plotmask(self, region=None, resolution=20, slat=71, slon=-70, hemi='s'):
-        """
-        Plot the mask.
-        """
+
+        """Plot the mask."""
+
         try:
             import enthought.mayavi.mlab as ml 
             mayavi = True
@@ -381,7 +418,7 @@ class Mask:
             print ">>> m.getmask('fname')"
             print 'then you can do:'
             print ">>> m.plotmask(region='left/right/bottom/upper', resolution=20)"
-            exit()
+            sys.exit()
      
         m_mask = self.m_mask
         x_mask = self.x_mask

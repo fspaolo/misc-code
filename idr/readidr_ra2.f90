@@ -5,6 +5,7 @@
 ! * apply selected increment for orbit correction
 ! * check flags for 'retracked' and 'problem retracking'
 ! * filter out points with undefined elevation values
+! * filter out points with invalid lat/lon values
 ! * filter out points with unavailable geophysical corrections
 ! * save to ASCII or Binary format (same_original_name.txt or .bin)
 ! * save output files to specified output directory
@@ -98,13 +99,13 @@ program main
 
    character(2) :: id
    real(8) :: secrev, fsecrev, secdat, mjd, fday, utc85
-   real(8) :: lat, lon, surf, otide, agc, inc 
+   real(8) :: lat, lon, surf, otide, agc !, inc 
    integer(4) :: orbit, surfstat, surfcheck
    integer(2) :: retstat, ionocheck, wetcheck, drycheck
-   integer(2) :: stidecheck, otidecheck, slopecheck, inccheck
+   integer(2) :: stidecheck, otidecheck, slopecheck !, inccheck
    integer(2) :: fret, fprob, fmode, fotide
 
-   character(100) :: arg, infile, outfile, outdir, incr
+   character(100) :: arg, infile, outfile, outdir !, incr
    integer :: nfiles, npts, nvalidpts, nrec, nopt, ios, i
    logical :: filecreated, ascii, verbose
 
@@ -169,27 +170,50 @@ program main
 
             ! Flags: big-end: 0-15 (lsb) -> little-end: 15-0 (msb)
             !-------------------------------------------------------
-            fprob = 0
             if (btest(retstat, 13) .or. &        ! wvfm spec shaped: 0=no, 1=yes
                 btest(retstat, 11) .or. &        ! wvfm spec retracked: 0=no, 1=yes
                 btest(retstat, 8)   .or. &       ! problem w/leading edge: 0=no, 1=yes
-                btest(retstat, 7)) fprob = 1     ! problem retracking: 0=no, 1=yes
-            fret = 0                                             
-            if (btest(retstat, 5)) fret = 1      ! wvfm retracked: 0=no, 1=yes
-            fmode = 3
-            if (.not. btest(retstat, 1) .and. &  ! tracking mode (14 and 15):
-                .not. btest(retstat, 0)) fmode = 0   ! 0 0 = Fine (~ocean in ERS)
-            if (.not. btest(retstat, 1) .and. &
-                      btest(retstat, 0)) fmode = 1   ! 0 1 = Medium (~ice in ERS)
-            if (btest(retstat, 1) .and. &
-                .not. btest(retstat, 0)) fmode = 2   ! 1 0 = Coarse (no in ERS)
-            fotide = 0
-            if (btest(surfstat, 7)) fotide = 1   ! otide corr applied: 0=no, 1=yes
+                btest(retstat, 7)) then 
+               fprob = 1                         ! problem retracking: 0=no, 1=yes
+            else
+               fprob = 0
+            endif
+            if (btest(retstat, 5)) then          ! wvfm retracked: 0=no, 1=yes
+               fret = 1      
+            else
+               fret = 0                                             
+            endif
+
+            if (     .not. btest(retstat, 1) .and. &  ! tracking mode (14 and 15):
+                     .not. btest(retstat, 0)) then    ! 0 0 = Fine (~ocean in ERS)
+               fmode = 0                              
+            else if (.not. btest(retstat, 1) .and. &
+                           btest(retstat, 0)) then    ! 0 1 = Medium (~ice in ERS)
+               fmode = 1                              
+            else if (      btest(retstat, 1) .and. &
+                     .not. btest(retstat, 0)) then    ! 1 0 = Coarse (no in ERS)
+               fmode = 2                              
+            else
+               fmode = 3                              ! 1 1 = None
+            endif
+
+            if (btest(surfstat, 7)) then 
+               fotide = 1                             ! otide corr applied: 0=no, 1=yes
+            else
+               fotide = 0
+            endif
             !-------------------------------------------------------
 
             npts = npts + 1
  
-            !!! computations
+            !!! filter and compute
+
+            ! filter values within correct range
+            if (.not. ( -90 <= lat .and. lat <= 90 .and. &
+                       -180 <= lon .and. lon <= 360) ) cycle 
+
+            if ( (abs(lat) < 1e-6 .and. lat /= 0.) .or.  &
+                 (abs(lon) < 1e-6 .and. lon /= 0.) ) cycle
 
             ! select pts with available geophysical corr
             if (&
@@ -325,7 +349,7 @@ contains
    end subroutine split_path
 
    subroutine print_help()
-      print '(a)', 'usage: ./readidr_ra1 [-h] [-v] [-b] [-d /output/dir] file1 file2 ...'
+      print '(a)', 'usage: ./readidr_ra2 [-h] [-v] [-b] [-d /output/dir] file1 file2 ...'
       print '(a)', ''
       print '(a)', 'required arguments:'
       print '(a)', '  files       input files to read [ex: /path/to/*.ID04]'

@@ -5,6 +5,7 @@
 ! * apply selected increment for orbit correction
 ! * check flags for 'retracked' and 'problem retracking'
 ! * filter out points with undefined elevation values
+! * filter out points with invalid lat/lon values
 ! * filter out points with unavailable geophysical corrections
 ! * save to ASCII or Binary format (same_original_name.txt or .bin)
 ! * save output files to specified output directory
@@ -174,22 +175,41 @@ program main
 
             ! Flags: big-end: 0-15 (lsb) -> little-end: 15-0 (msb)
             !-------------------------------------------------------
-            fprob = 0
-            if (btest(retstat, 13) .or. &      ! wvfm spec shaped: 0=no, 1=yes
-                btest(retstat, 11) .or. &      ! wvfm spec retracked: 0=no, 1=yes
-                btest(retstat, 8)   .or. &     ! problem w/leading edge: 0=no, 1=yes
-                btest(retstat, 7)) fprob = 1   ! problem retracking: 0=no, 1=yes
-            fret = 0                                             
-            if (btest(retstat, 5)) fret = 1    ! wvfm retracked: 0=no, 1=yes
-            fmode = 0                              
-            if (btest(retstat, 0)) fmode = 1   ! mode: 0=ocean, 1=ice
-            fotide = 0
-            if (btest(surfstat, 7)) fotide = 1 ! otide cor applied: 0=no, 1=yes
+            if (btest(retstat, 13) .or. &   ! wvfm spec shaped: 0=no, 1=yes
+                btest(retstat, 11) .or. &   ! wvfm spec retracked: 0=no, 1=yes
+                btest(retstat, 8)   .or. &  ! problem w/leading edge: 0=no, 1=yes
+                btest(retstat, 7)) then 
+               fprob = 1                    ! problem retracking: 0=no, 1=yes
+            else
+               fprob = 0
+            endif
+            if (btest(retstat, 5)) then     ! wvfm retracked: 0=no, 1=yes
+               fret = 1                     
+            else
+               fret = 0                                          
+            endif
+            if (btest(retstat, 0)) then     ! mode: 0=ocean, 1=ice
+               fmode = 1   
+            else
+               fmode = 0                           
+            endif
+            if (btest(surfstat, 7)) then    ! otide cor applied: 0=no, 1=yes
+               fotide = 1 
+            else
+               fotide = 0
+            endif
             !-------------------------------------------------------
             
             npts = npts + 1
  
-            !!! computations
+            !!! filter and compute
+
+            ! filter values within correct range
+            if (.not. ( -90 <= lat .and. lat <= 90 .and. &
+                       -180 <= lon .and. lon <= 360) ) cycle 
+
+            if ( (abs(lat) < 1e-6 .and. lat /= 0.) .or.  &
+                 (abs(lon) < 1e-6 .and. lon /= 0.) ) cycle
 
             ! select pts with available geophysical corr
             if (&
@@ -211,7 +231,7 @@ program main
                utc85 = (mjd + fday - MJD85) * DAYSECS         ! secs
  
                ! add increment and detide
-               surf = surf + inc
+              
                if (fotide == 1) surf = surf + otide
  
                !!! output
@@ -329,7 +349,7 @@ contains
       print '(a)', 'usage: ./readidr_ra1 [-h] [-v] [-b] [-i 1|2|3] [-d /output/dir] file1 file2 ...'
       print '(a)', ''
       print '(a)', 'required arguments:'
-      print '(a)', '  files       input files to read [ex: /path/to/*.ID04]'
+      print '(a)', '  files       input files to read [ex: /path/to/files/*.ID04]'
       print '(a)', '              note: files always at the end!'
       print '(a)', ''
       print '(a)', 'optional arguments:'
