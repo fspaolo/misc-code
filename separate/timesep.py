@@ -105,9 +105,9 @@ def main():
         if ascii:
             data = np.loadtxt(f)
         else:
-            h5f = tb.openFile(f, 'r')
-            data = h5f.root.data.read()
-            h5f.close()
+            fin = tb.openFile(f, 'r')
+            #data = fin.root.data.read()  # in-memory
+            data = fin.root.data          # out-of-memory
      
         if data.shape[0] < 1:
             print 'no data points in the file!'
@@ -166,9 +166,14 @@ def main():
                     np.savetxt(outfile, data[IND,:], fmt='%f')
                     nfiles += 1
                 else:
-                    h5f = tb.openFile(outfile, 'w')
-                    h5f.createArray(h5f.root, 'data', data[IND,:])
-                    h5f.close()
+                    fout = tb.openFile(outfile, 'w')
+                    shape = data[IND,:].shape
+                    atom = tb.Atom.from_dtype(data.dtype)
+                    filters = tb.Filters(complib='blosc', complevel=5)
+                    dout = fout.createCArray(fout.root,'data', atom=atom, shape=shape,
+                                             filters=filters)
+                    dout[:] = data[IND,:] 
+                    fout.close()
                     nfiles += 1
 
             if window is not None:
@@ -177,6 +182,9 @@ def main():
                 break   
             else:
                 continue
+
+        if not ascii:
+            fin.close()
 
     print 'done!'
     if dir is True:
