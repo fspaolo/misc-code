@@ -33,6 +33,9 @@ parser.add_argument('-s', dest='submit', default=False, action='store_const',
                     const=True, help='submit batch file after creation')
 parser.add_argument('-c', dest='execute', help="command (w/args) to execute "
                     "[ex: -c '/path/to/prog -a arg']")
+parser.add_argument('-1', dest='onetask', default=False, action='store_const', 
+                    const=True, help='create one single task with all files'
+                    '[default: multitask]')
 
 args = parser.parse_args()
 if not args.batchfile: 
@@ -54,11 +57,14 @@ def create_tasks(args):
     execute = args.execute.split()
     cmd, arguments = execute[0], execute[1:]
     tasks = {}
-    if args.files:
-        for i, f in enumerate(args.files):
+    if args.files and args.onetask:             # all files -> one task
+        tasks.setdefault(`0`, {'command': cmd, 
+                               'arguments': arguments + args.files})
+    elif args.files:                            # each file -> one task
+        for i, f in enumerate(args.files):  
             tasks.setdefault(`i`, {'command': cmd, 
                                    'arguments': arguments + [f]})
-    else:
+    else:                                       # no files
         tasks.setdefault(`0`, {'command': cmd, 
                                'arguments': arguments})
     return tasks
