@@ -2,7 +2,7 @@
 doc = """\
  Read utc85 (from HDF5/ASCII) and separate by: year, month or month-window.
 """ 
-epilog = """\
+"""
  Fernando Paolo <fpaolo@ucsd.edu>
  October 22, 2010
 """
@@ -16,8 +16,7 @@ import sys
 import os
 
 # parse command line arguments
-parser = ap.ArgumentParser(formatter_class=ap.RawTextHelpFormatter,
-    description=doc)
+parser = ap.ArgumentParser(description=doc)
 group = parser.add_mutually_exclusive_group()
 parser.add_argument('file', nargs='+', help='HDF5/ASCII file[s] to read')
 parser.add_argument('-c', dest='utc85col', type=int, default=1, 

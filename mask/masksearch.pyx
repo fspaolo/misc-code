@@ -1,11 +1,12 @@
+# cython: boundscheck=False
+# cython: wraparound=False
+
 from __future__ import division
 import numpy as np
 cimport numpy as np
 
 ctypedef np.int16_t SHORT
 
-#cimport cython
-#@cython.boundscheck(False)  # turn of bounds-checking for entire function
 def mask_search(np.ndarray[SHORT, ndim=1] x,
                 np.ndarray[SHORT, ndim=1] y,
                 np.ndarray[SHORT, ndim=1] x_mask,
@@ -18,6 +19,7 @@ def mask_search(np.ndarray[SHORT, ndim=1] x,
     cdef unsigned int i, row, col, r, c
     cdef int N = x.shape[0]
 
+    # explicitly check for None
     if x is None or y is None or x_mask is None or y_mask is None or \
        m_mask is None or flags is None:
         raise ValueError('error: mask_search: array set to None')
@@ -41,6 +43,7 @@ def mask_search(np.ndarray[SHORT, ndim=1] x,
                 flags[i,1] = 0    # if all True
             else:                                          
                 flags[i,1] = 1    # else is border
+
 
             # just another way of doing the main loop (C style)
             #out = 0

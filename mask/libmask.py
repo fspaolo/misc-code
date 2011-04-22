@@ -22,6 +22,7 @@ except:
     cmodule = False
     print "couln't import C module!"
 
+
 class Mask:
 
     """Class to apply the MODIS Antarctic ice mask."""
