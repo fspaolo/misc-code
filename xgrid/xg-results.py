@@ -135,3 +135,16 @@ if submit: submit_batch()
 '''
 
 #if jobid is not None: get_results(jobid)
+
+'''
+def get_results(jobid):
+    os.mkdir(jobname)
+    os.system('xgrid -job resutlts -id %d -so %s.out -e %s.err -out %s' \
+              % (jobid, jobname, jobname, jobname))
+    print 'std output -> %s.out' % jobname
+    print 'std error -> %s.err' % jobname
+    print 'results dir -> %s' % jobname
+
+PLIST = create_PLIST(execute, files)
+create_batch(PLIST, batchfile)
+'''
