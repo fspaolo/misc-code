@@ -1,3 +1,4 @@
+!
 ! Read 112-Byte IDR files: Envisat 
 !
 ! * convert MJD to time in seconds since 1-Jan-1985 (aka utc85 or ESA time)
@@ -11,15 +12,16 @@
 ! * save output files to specified output directory
 ! * all arguments are passed trough the command line
 ! 
-! Usage:
-! gfortran -fconvert=big-endian readidr_ra2.f90 -o readidr_ra2 
-! ./readidr_ra1 -h
+! Usage
+! -----
+! $ gfortran -fconvert=big-endian readidr_ra2.f90 -o readidr_ra2 
+! $ ./readidr_ra1 -h
 !
-! Notes:
+! Notes
 ! ------
 ! Undefined surf values are set to -9999
 ! Undefined corrections are set to 32767
-! For Envisat no need to increment !!!
+! For Envisat no need to increment orbit !!!
 !
 ! For IDR format see:
 ! http://icesat4.gsfc.nasa.gov/data_products/level2.php
@@ -27,7 +29,7 @@
 ! For examples on how to use the code see:
 ! http://fspaolo.net/code
 !
-! Obs:
+! Obs
 ! ----
 ! This program follows the Fortran 2003 standard.
 !
@@ -210,7 +212,7 @@ program main
 
             ! filter values within correct range
             if (.not. ( -90 <= lat .and. lat <= 90 .and. &
-                       -180 <= lon .and. lon <= 360) ) cycle 
+                       -180 <= lon .and. lon <= 360) ) cycle
 
             if ( (abs(lat) < 1e-6 .and. lat /= 0.) .or.  &
                  (abs(lon) < 1e-6 .and. lon /= 0.) ) cycle
@@ -222,6 +224,7 @@ program main
                 wetcheck /= 32767 .and. &
                 drycheck /= 32767 .and. &
                 stidecheck /= 32767 &
+                !inccheck /= 32767 &        ! no increment for Envisat
                 !slopecheck /= 32767 &
                 ) then
                   
@@ -267,7 +270,8 @@ program main
                   write(2, '(i6, f20.6, 2f14.6, 2f14.3, 3i2)') &           ! [edit]
                      orbit, utc85, lat, lon, surf, agc, fmode, fret, fprob
                else
-                  write(2) & 
+                  ! all to binary double precision
+                  write(2) &                          
                      orbit, utc85, lat, lon, surf, agc, fmode, fret, fprob
                endif
 
@@ -286,6 +290,8 @@ program main
       print '(a)', 'output extension: .txt' 
    else
       print '(a)', 'output extension: .bin' 
+      print '(a)', 'data in binary format BIG ENDIAN:' 
+      print '(a)', 'I*4, F*8, F*8, F*8, F*8, F*8, F*8, I*2, I*2, I*2' 
    endif   
 
 contains

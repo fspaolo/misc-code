@@ -66,7 +66,8 @@ for f in files:
             data = fin.root.data         # out-of-memory
 
     try:
-        dataout = m.applymask(data[ind,:], latcol=latcol, loncol=loncol, border=border)
+        dataout = m.applymask(data, latcol=latcol, loncol=loncol, \
+                              slat=71, slon=-70, hemi='s', border=border)
     except:
         print '\n***** something went wrong!\n'
         print '***** file:', f

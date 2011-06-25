@@ -75,11 +75,12 @@ class Mask:
               
 
     def closemask(self):
-        
-        """Close the opened HDF5 mask file."""
 
+        """Close the opened HDF5 mask file.
+        """
         try:
-            if self.fmask.isopen: self.fmask.close()
+            if self.fmask.isopen: 
+                self.fmask.close()
         except:
             pass
 
@@ -100,7 +101,7 @@ class Mask:
         lat, lon : array_like or float 
             Geodetic latitude and longitude (degrees, -/+90 and -/+180|0/360).
         slat : float
-            Standard latitude (e.g., 71).
+            Standard latitude (e.g., 71 or 70 deg for N/S).
         slon : float
             Standard longitude (e.g., -70).
         hemi : string
@@ -128,7 +129,23 @@ class Mask:
         >>> m = Mask()
         >>> lat = [70.2, 75.5, 80.3]
         >>> lon = [-150.3, 66.2, 5.3]
-        >>> x, y = m.mapll(lat, lon, 71, -70, 's')"""
+        >>> x, y = m.mapll(lat, lon, 71, 70, 's')
+
+        Original (Matlab) documentation
+        -------------------------------
+        ARGUMENTS:                                                         
+                                                                           
+        Variable     I/O    Description                          
+                                                                            
+        lat           I     Geodetic Latitude (degrees, +90 to -90)
+        lon           I     Geodetic Longitude (degrees, 0 to 360)
+        SLAT          I     Standard latitude (typ. 71, or 70)
+        SLON          I  
+        HEMI          I     Hemisphere (char*1: 'N' or 'S' (not
+                                        case-sensitive)
+        x             O     Polar Stereographic X Coordinate (km)
+        y             O     Polar Stereographic Y Coordinate (km)
+        """
 
         print 'converting lat,lon -> x,y ...'
         # definition of constants:
@@ -188,7 +205,7 @@ class Mask:
         x, y : array_like or float
             Polar stereographic x and y coordinates (km).
         slat : float
-            Standard latitude (e.g., 71).
+            Standard latitude (e.g., 71 or 70 for N/S).
         slon : float
             Standard longitude (e.g., -70).
         hemi : string
@@ -214,7 +231,23 @@ class Mask:
         >>> m = Mask()
         >>> x = [-2141.06767831  1096.06628549  1021.77465469]
         >>> y = [  365.97940112 -1142.96735458   268.05756254]
-        >>> lat, lon = m.mapxy(x, y, 71, -70, 's')"""
+        >>> lat, lon = m.mapxy(x, y, 71, -70, 's')
+
+        Original (Matlab) documentation
+        -------------------------------
+        ARGUMENTS:                                                           
+                                                                             
+        Variable     I/O    Description                          
+                                                                          
+        X             I     Polar Stereographic X Coordinate (km) 
+        Y             I     Polar Stereographic Y Coordinate (km)
+        SLAT          I     Standard latitude (typ. 71, or 70)
+        SLON          I     Standard longitude
+        HEMI          I     Hemisphere (char*1, 'S' or 'N', 
+                                        not case-sensitive)
+        lat           O     Geodetic Latitude (degrees, +90 to -90)
+        lon           O     Geodetic Longitude (degrees, 0 to 360) 
+        """
 
         print 'converting x,y -> lat,lon ...'
         # definition of constants:
@@ -262,10 +295,8 @@ class Mask:
                 + (a3 + a4) * np.sin(4. * CHI) + a5 * np.sin(6. * CHI)
             lat = SGN * lat * CDR
             lon = -(np.arctan2(-x, y) * CDR) + slon
-            # original
-            #lon = SGN * (np.arctan2(SGN * x, -SGN * y) * CDR) + slon 
-            # keep lon to -/+180
-            #lon[lon<-180] += 360; lon[lon>180] -= 360
+            #lon = SGN * (np.arctan2(SGN * x, -SGN * y) * CDR) + slon # original !!!
+            #lon[lon<-180] += 360; lon[lon>180] -= 360                # keep lon to -/+180
         return lat, lon
 
 
@@ -283,7 +314,7 @@ class Mask:
         loncol : integer
             Column of longitude in the data matrix.
         slat : float
-            Standard latitude (e.g., 71).
+            Standard latitude (e.g., 71 or 70 for N/S).
         slon : float
             Standard longitude (e.g., -70).
         hemi : string
@@ -295,7 +326,7 @@ class Mask:
         -------
         out : 2D ndarray
             The original data with two extra columns containing the flags:
-            col1 (mask) 0=land/1=water/2=ice-shelf, col2 (border) 0/1.
+            col1 (mask) 0=land/1=water/2=ice-shelf, col2 (is border) 0=no/1=yes.
         
         Example
         -------
@@ -323,7 +354,7 @@ class Mask:
      
         ndata = data.shape[0]
         flags = np.ones((ndata,2), 'i2') # 1 = water
-        flags[:,1] = 0                   # 0 = no-border
+        flags[:,1] = 0                   # 0 = is not the border of the mask
         x = np.rint(x)                   # round to nearest integer !!!
         y = np.rint(y)
         R = border
@@ -332,7 +363,7 @@ class Mask:
         x_min = x.min(); x_max = x.max()
         y_min = y.min(); y_max = y.max()
 
-        # shortens the mask for faster searching (if needed)
+        # shortens the mask (2D ndarray) for faster searching (if needed)
         resize = False
         if self.x_mask[0] < x_min-R:                 # mask larger than data+R
             jmin, = np.where(self.x_mask == x_min-R) 

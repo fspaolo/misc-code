@@ -33,19 +33,19 @@ parser.add_argument('-j', dest='jobname', default='job', help='a symbolic '
     'name of the job [default: job]')
 parser.add_argument('-o', dest='batchfile', default=None, help='name of the '
     'output batch file [default: <jobname>.xml]')
-parser.add_argument('-e', dest='email', default='', help='email to send '
-    'notification of job state')
-parser.add_argument('-s', dest='submit', default=False, action='store_const', 
-    const=True, help='submit batch file after creation')
 parser.add_argument('-c', dest='execute', required=True, help="command "
     "(with args) to execute [ex: -c '/path/to/prog -a arg']")
-parser.add_argument('-1', dest='onetask', default=False, action='store_const', 
-    const=True, help='create one single task with all files '
-    '[default: multi-task]')
 parser.add_argument('-d', dest='depends', nargs=1, #metavar=("'id1 id2 ...'"), 
     default=None, help="do not schedule this job until the following "
     "job (id's) have finished successfully [ex: -d 'id1 id2 ...' or "
     "-d dir_with_id_files] ")
+parser.add_argument('-e', dest='email', default='', help='email to send '
+    'notification of job state')
+parser.add_argument('-1', dest='onetask', default=False, action='store_const', 
+    const=True, help='create one single task with all files '
+    '[default: multi-task]')
+parser.add_argument('-s', dest='submit', default=False, action='store_const', 
+    const=True, help='submit batch file after creation')
 
 args = parser.parse_args()
 if not args.batchfile: 

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """
- Convert HDF5 data files (2D array) to plain Binary (stream of bytes).
+ Convert HDF5 data files (2D array) to flat Binary (stream of bytes).
 
  If the extension of the input file is '.h5' the program performs convertion
- from HDF5 to plain Binary. For any other extention it is assume convertion
- from plain Binary to HDF5.
+ from HDF5 to flat Binary. For any other extention it is assume convertion
+ from flat Binary to HDF5.
 
  Fernando Paolo <fpaolo@ucsd.edu>
  May 12, 2011
@@ -29,6 +29,8 @@ parser.add_argument('-c', dest='ncol', type=int, default=10,
     help='number of elements per record (columns) [default: 9]')
 parser.add_argument('-d', dest='dtype', default='f8',
     help='data type: i2, i4, f4, f8, ... [default: f8]')
+parser.add_argument('-e', dest='ext', default=None,
+    help='output file extension [default: .bin or .h5]')
 
 args = parser.parse_args()
 
@@ -47,6 +49,10 @@ def bin_info(ncol, dtype, ext_in):
 
 if ext_in == '.h5':
     print 'converting HDF5 -> BIN ...'
+    if args.ext:
+        ext_out = args.ext
+    else:
+        ext_out = '.bin'
     for f in args.files:
         if args.verbose: 
             print 'file:', f
@@ -62,11 +68,15 @@ if ext_in == '.h5':
         ncol = data.shape[1]
         dtype = data.dtype.str[1:]
         fname = os.path.splitext(f)[0]
-        data[:].tofile('%s.bin' % fname)
+        data[:].tofile('%s' + ext_out % fname)
         fin.close()
-    print 'last output ->', f.split('.')[0] + '.bin'
+    print 'last output ->', f.split('.')[0] + ext_out 
 else:
     print 'converting BIN -> HDF5 ...'
+    if args.ext:
+        ext_out = args.ext
+    else:
+        ext_out = '.h5'
     for f in args.files:
         if args.verbose: 
             print 'file:', f
@@ -74,10 +84,10 @@ else:
             if args.verbose: 
                 print 'empty file'
             continue                    
-        h5f = tb.openFile(f.split('.')[0] + '.h5', 'w')
+        h5f = tb.openFile(f.split('.')[0] + ext_out, 'w')
         ncol = args.ncol
         dtype = args.dtype
-        data = np.fromfile(f, dtype=dtype)  # in-memory
+        data = np.fromfile(f, dtype=dtype)  # load data in-memory
         shape = (data.shape[0]/ncol, ncol)
         if args.inmemory:
             h5f.createArray(h5f.root, 'data', data.reshape(shape))
@@ -86,10 +96,9 @@ else:
             filters = tb.Filters(complib='blosc', complevel=5)
             dout = h5f.createCArray(h5f.root,'data', atom=atom, shape=shape,
                                     filters=filters)
-            print dout.shape, data.shape, shape
             dout[:] = data.reshape(shape)
         h5f.close()
-    print 'last output ->', f.split('.')[0] + '.h5'
+    print 'last output ->', f.split('.')[0] + ext_out 
 
 bin_info(ncol, dtype, ext_in)
 print 'done.'
