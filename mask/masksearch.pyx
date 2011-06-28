@@ -45,7 +45,7 @@ def mask_search(np.ndarray[SHORT, ndim=1] x,
                 flags[i,1] = 1    # else is border
 
 
-            # just another way of doing the main loop (C style)
+            # just another way of doing the main loop (more "C style")
             #out = 0
             #for r in range(row-R, row+R+1):
             #    for c in range(col-R, col+R+1):

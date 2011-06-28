@@ -68,7 +68,7 @@ if ext_in == '.h5':
         ncol = data.shape[1]
         dtype = data.dtype.str[1:]
         fname = os.path.splitext(f)[0]
-        data[:].tofile('%s' + ext_out % fname)
+        data[:].tofile(fname + ext_out)
         fin.close()
     print 'last output ->', f.split('.')[0] + ext_out 
 else:

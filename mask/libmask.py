@@ -396,6 +396,7 @@ class Mask:
         print 'applying mask ...'
 
         # C function for speed up-----------------------------------
+
         if cmodule:
             m.mask_search(x.astype('i2'), 
                           y.astype('i2'), 
@@ -404,7 +405,9 @@ class Mask:
                           self.m_mask[imin:imax+1, jmin:jmax+1].astype('i2'), 
                           flags, 
                           R)
+
         #-----------------------------------------------------------
+
         else:
             # search the flag in the mask
             for i in xrange(ndata):
@@ -424,6 +427,7 @@ class Mask:
                         flags[i,1] = 0     # if all True
                     else:                                             
                         flags[i,1] = 1     # else is border
+
         #-----------------------------------------------------------
 
         dataout = np.column_stack((data, flags))  # add colum with flags

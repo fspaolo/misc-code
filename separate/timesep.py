@@ -7,13 +7,15 @@ doc = """\
  October 22, 2010
 """
 
+import os
+os.environ['MPLCONFIGDIR'] = '/var/tmp'    # to ensure a writable dir when "nobody"
+
 import numpy as np
 import tables as tb
 import argparse as ap
 import datetime as dt
 import matplotlib.dates as mpl
 import sys
-import os
 
 # parse command line arguments
 parser = ap.ArgumentParser(description=doc)
