@@ -1,5 +1,5 @@
 """
- Module to apply the MODIS Antarctic ice mask.
+ Module to apply the MODIS-based Antarctic ice mask.
 
  For documentation on each method see the docstrings.
 
@@ -17,13 +17,13 @@ import os
 try:
     import masksearch as m   # C function for speed up!
     cmodule = True
-    print 'C module imported!'
+    print 'C module for speed-up imported!'
 except:
     cmodule = False
-    print "couln't import C module!"
+    print "couln't import C module, using pure Python instead!"
 
 
-class Mask:
+class Mask(object):
 
     """Class to apply the MODIS Antarctic ice mask."""
 
@@ -35,6 +35,10 @@ class Mask:
                 self.getmask(maskfile)        # HDF5 files
         else:
             self.maskfile = None 
+
+
+    def __str__(self):
+        return '\nMODIS MOA-based mask of 1km resolution: %s\n' % self.maskfile
 
 
     def getmask_mat(self, maskfile):
@@ -85,9 +89,9 @@ class Mask:
             pass
 
 
-    def mapll(self, lat, lon, slat=71, slon=-70, hemi='s'):
+    def mapll(self, lon, lat, slat=71, slon=-70, hemi='s', units='km'):
 
-        """Convert from 'lat,lon' to polar stereographic 'x,y'.
+        """Convert from 'lon,lat' to polar stereographic 'x,y'.
      
         This function converts from geodetic latitude and longitude to
         polar stereographic 'x,y' coordinates for the polar regions. The 
@@ -98,19 +102,21 @@ class Mask:
         
         Parameters
         ----------
-        lat, lon : array_like or float 
-            Geodetic latitude and longitude (degrees, -/+90 and -/+180|0/360).
+        lon, lat : array_like (rank-1 or 2) or float 
+            Geodetic longitude and latitude (degrees, -/+180 or 0/360 and -/+90).
         slat : float
             Standard latitude (e.g., 71 or 70 deg for N/S).
         slon : float
             Standard longitude (e.g., -70).
         hemi : string
-            Hemisphere: 'n' | 's', not case-sensitive.
+            Hemisphere: 'n' or 's', not case-sensitive.
+        units : string
+            Polar Stereographic x,y units: 'm' or 'km', not case-sensitive.
         
         Returns
         -------
-        x, y : ndarray or float
-            Polar stereographic x and y coordinates (km).
+        x, y : ndarray (rank-1 or 2) or float
+            Polar stereographic x and y coordinates (in 'm' or 'km').
         
         History
         -------
@@ -127,9 +133,9 @@ class Mask:
         Example
         -------
         >>> m = Mask()
-        >>> lat = [70.2, 75.5, 80.3]
         >>> lon = [-150.3, 66.2, 5.3]
-        >>> x, y = m.mapll(lat, lon, 71, 70, 's')
+        >>> lat = [70.2, 75.5, 80.3]
+        >>> x, y = m.mapll(lon, lat, slat=71, slon=70, hemi='s', units='m')
 
         Original (Matlab) documentation
         -------------------------------
@@ -146,8 +152,14 @@ class Mask:
         x             O     Polar Stereographic X Coordinate (km)
         y             O     Polar Stereographic Y Coordinate (km)
         """
+        if units != 'm':
+            units = 'km'
+        print 'parameters:'
+        print 'standard lat:', slat
+        print 'standard lon:', slon
+        print 'units of x,y:', units
+        print "converting from 'lon,lat' to 'x,y' ..."
 
-        print 'converting lat,lon -> x,y ...'
         # definition of constants:
         CDR = 57.29577951     # conversion degrees to radians (180/pi)
         E2 = 6.694379852*1e-3 # eccentricity squared
@@ -156,15 +168,21 @@ class Mask:
         RE = 6378.1370        # updated 2/11/08 (see email from Shad O'Neel)
         #RE = 6378.273        # original value
      
-        #if type(lat).__name__ != 'ndarray':
-        #    lat = np.array(lat, 'f8')        # convert to ndarray
-        #if type(lon).__name__ != 'ndarray':
-        #    lon = np.array(lon, 'f8') 
+        # if sequence convert to ndarray double
+        if type(lon).__name__ in ['list', 'tuple']:
+            lon = np.array(lon, 'f8') 
+            lat = np.array(lat, 'f8')        
+
+        # if ndarray convert to double if it isn't
+        if type(lon).__name__ == 'ndarray' and lon.dtype != 'float64':
+            lon = lon.astype(np.float64)
+            lat = lat.astype(np.float64)
      
-        if lon.ndim > 0:                     # array
-            lon[lon<0] += 360                # -/+180 -> 0/360
-        elif lon < 0:                        # scalar
-            lon += 360                    
+        # convert longitude
+        if type(lon).__name__ == 'ndarray':  # is numpy array
+            lon[lon<0] += 360.               # -/+180 -> 0/360
+        elif lon < 0:                        # is scalar
+            lon += 360.                    
      
         if (str.lower(hemi) == 's'):
             SGN = -1
@@ -186,35 +204,42 @@ class Mask:
         lon = -(lon - slon) / CDR
         x = -RHO * T * np.sin(lon)  # global vars
         y =  RHO * T * np.cos(lon)
+
+        if units == 'm':            # computations are done in km
+            x *= 1000.
+            y *= 1000.
+
         return x, y
      
      
-    def mapxy(self, x, y, slat=71, slon=-70, hemi='s'):
+    def mapxy(self, x, y, slat=71, slon=-70, hemi='s', units='km'):
 
-        """Convert from polar stereographic 'x,y' to 'lat,lon'.
+        """Convert from polar stereographic 'x,y' to 'lon,lat'.
      
         This subroutine converts from Polar Stereographic 'x,y' coordinates 
-        to geodetic latitude and longitude for the polar regions. The 
+        to geodetic longitude and latitude for the polar regions. The 
         equations are from Snyder, J.P., 1982, Map Projections Used by the 
         U.S. Geological Survey, Geological Survey Bulletin 1532, U.S. 
-        Government Printing Office.  See JPL Technical Memorandum 
+        Government Printing Office. See JPL Technical Memorandum 
         3349-85-101 for further details.  
      
         Parameters
         ----------
-        x, y : array_like or float
-            Polar stereographic x and y coordinates (km).
+        x, y : array_like (rank-1 or 2) or float
+            Polar stereographic x and y coordinates (in 'm' or 'km').
         slat : float
             Standard latitude (e.g., 71 or 70 for N/S).
         slon : float
             Standard longitude (e.g., -70).
         hemi : string
-            Hemisphere: 'n' | 's', not case-sensitive.
+            Hemisphere: 'n' or 's', not case-sensitive.
+        units : string
+            Polar stereographic x,y units: 'm' or 'km', not case-sensitive.
      
         Returns
         -------
-        lat, lon : ndarray or float
-            Geodetic latitude and longitude (degrees, -/+90 and 0/360).
+        lon, lat : ndarray (rank-1 or 2) or float
+            Geodetic longitude and latitude (degrees, 0/360 and -/+90).
      
         History
         -------
@@ -231,7 +256,7 @@ class Mask:
         >>> m = Mask()
         >>> x = [-2141.06767831  1096.06628549  1021.77465469]
         >>> y = [  365.97940112 -1142.96735458   268.05756254]
-        >>> lat, lon = m.mapxy(x, y, 71, -70, 's')
+        >>> lon, lat = m.mapxy(x, y, slat=71, slon=-70, hemi='s', units='km')
 
         Original (Matlab) documentation
         -------------------------------
@@ -248,8 +273,14 @@ class Mask:
         lat           O     Geodetic Latitude (degrees, +90 to -90)
         lon           O     Geodetic Longitude (degrees, 0 to 360) 
         """
+        if units != 'm':
+            units = 'km'
+        print 'parameters:'
+        print 'standard lat:', slat
+        print 'standard lon:', slon
+        print 'units of x,y:', units
+        print "converting from 'x,y' to 'lon,lat' ..."
 
-        print 'converting x,y -> lat,lon ...'
         # definition of constants:
         CDR = 57.29577951     # conversion degrees to radians (180/pi)
         E2 = 6.694379852*1e-3 # eccentricity squared
@@ -258,28 +289,36 @@ class Mask:
         RE = 6378.1370        # updated 2/11/08 (see email from Shad O'Neel)
         #RE = 6378.273        # original value
      
-        #if type(x).__name__ != 'ndarray':
-        #    x = np.array(x, 'f8')          # convert to ndarray double
-        #if type(y).__name__ != 'ndarray':
-        #    y = np.array(y, 'f8')
+        # if sequence convert to ndarray
+        if type(x).__name__ in ['list', 'tuple']:
+            x = np.array(x, 'f8')
+            y = np.array(y, 'f8')
+        
+        # if ndarray convert to double if it isn't
+        if type(x).__name__ == 'ndarray' and x.dtype != 'float64':
+            x = x.astype(np.float64)
+            y = y.astype(np.float64)
      
+        if units == 'm':      # computations are done in km !!!
+            x *= 1e-3
+            y *= 1e-3
+
         if(str.lower(hemi) == 's'):
-            SGN = -1
+            SGN = -1.
         else:
-            SGN = 1
+            SGN = 1.
         slat = np.abs(slat)
         SL = slat / CDR
-        RHO = np.sqrt(x**2 + y**2)
-        if RHO.all() < 0.1:           
-            # Don't calculate if on the equator
-            lat = 90. * SGN
+        RHO = np.sqrt(x**2 + y**2)    # if scalar, is numpy.float64
+        if np.alltrue(RHO < 0.1):     # Don't calculate if "all points" on the equator
+            lat = 90.0 * SGN
             lon = 0.0
-            return lat, lon
+            return lon, lat
         else:
             CM = np.cos(SL) / np.sqrt(1 - E2 * (np.sin(SL)**2))
             T = np.tan((PI/4.) - (SL/2.)) / ((1 - E * np.sin(SL)) \
-              / (1 + E * np.sin(SL)))**(E/2.)
-            if (np.abs(slat - 90) < 1.e-5):
+                / (1 + E * np.sin(SL)))**(E/2.)
+            if (np.abs(slat - 90.) < 1.e-5):
                 T = ((RHO * np.sqrt((1 + E)**(1 + E) * (1 - E)**(1 - E))) / 2.) / RE
             else:
                 T = RHO * T / (RE * CM)
@@ -292,18 +331,19 @@ class Mask:
             
             CHI = (PI/2.) - 2. * np.arctan(T)
             lat = CHI + ((E2/2.) + a1 + a2) * np.sin(2. * CHI) \
-                + (a3 + a4) * np.sin(4. * CHI) + a5 * np.sin(6. * CHI)
+                  + (a3 + a4) * np.sin(4. * CHI) + a5 * np.sin(6. * CHI)
             lat = SGN * lat * CDR
             lon = -(np.arctan2(-x, y) * CDR) + slon
+
             #lon = SGN * (np.arctan2(SGN * x, -SGN * y) * CDR) + slon # original !!!
             #lon[lon<-180] += 360; lon[lon>180] -= 360                # keep lon to -/+180
-        return lat, lon
+        return lon, lat
 
 
     def applymask(self, data, latcol=2, loncol=3, slat=71, slon=-70, \
                   hemi='s', border=3):
 
-        """Apply the mask to a data set given the conditions.
+        """Apply the MOA mask to a data set given the conditions.
         
         Parameters
         ----------
@@ -331,8 +371,8 @@ class Mask:
         Example
         -------
         >>> m = Mask('maskfilename')
-        >>> dataout = m.applymask(data, latcol=1, loncol=2, border=7)"""
-
+        >>> dataout = m.applymask(data, latcol=1, loncol=2, border=3)
+        """
         #if type(data).__name__ != 'ndarray':
         #    print "error: applymask: 'data' must be ndarray:"
         #    print 'you may want to do the following:'
@@ -350,12 +390,12 @@ class Mask:
      
         #ind, = np.where((-90 <= data[:,latcol]) & (data[:,latcol] >= 90) &
         #                (-180 <= data[:,loncol]) & (data[:,loncol] >= 360))
-        x, y = self.mapll(data[:,latcol], data[:,loncol], slat, slon, hemi)
+        x, y = self.mapll(data[:,loncol], data[:,latcol], slat=slat, slon=slon, hemi=hemi)
      
         ndata = data.shape[0]
         flags = np.ones((ndata,2), 'i2') # 1 = water
         flags[:,1] = 0                   # 0 = is not the border of the mask
-        x = np.rint(x)                   # round to nearest integer !!!
+        x = np.rint(x)                   # round to nearest integer !!!!!
         y = np.rint(y)
         R = border
      
@@ -453,7 +493,7 @@ class Mask:
             print '>>> m = Mask()'
             print ">>> m.getmask('fname')"
             print 'then you can do:'
-            print ">>> m.plotmask(region='left/right/bottom/upper', resolution=20)"
+            print ">>> m.plotmask(region='left/right/bottom/top', resolution=20)"
             sys.exit()
      
         m_mask = self.m_mask
@@ -461,13 +501,13 @@ class Mask:
         y_mask = self.y_mask
         
         if region is not None:
-            left, right, bottom, upper = str.split(region, '/')
-            left, bottom = self.mapll(bottom, left, slat, slon, hemi)
-            right, upper = self.mapll(upper, right, slat, slon, hemi)
+            left, right, bottom, top = str.split(region, '/')
+            left, bottom = self.mapll(left, bottom, slat=slat, slon=slon, hemi=hemi)
+            right, top = self.mapll(right, top, slat=slat, slon=slon, hemi=hemi)
             jmin, = np.where(x_mask == np.rint(left))
             jmax, = np.where(x_mask == np.rint(right))
             imin, = np.where(y_mask == np.rint(bottom))
-            imax, = np.where(y_mask == np.rint(upper))
+            imax, = np.where(y_mask == np.rint(top))
             #x_mask = x_mask[jmin:jmax+1:resolution]
             #y_mask = y_mask[imin:imax+1:resolution]
             m_mask = m_mask[imin:imax+1:resolution, jmin:jmax+1:resolution]

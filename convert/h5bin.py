@@ -52,7 +52,8 @@ if ext_in == '.h5':
     if args.ext:
         ext_out = args.ext
     else:
-        ext_out = '.bin'
+        #ext_out = '.bin'
+        ext_out = ''
     for f in args.files:
         if args.verbose: 
             print 'file:', f
