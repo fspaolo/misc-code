@@ -34,7 +34,7 @@ parser.add_argument('-d', dest='dir', action='store_const', const=True, \
 parser.add_argument('-a', dest='ascii', default=False, action='store_const',
     const=True, help='reads and writes ASCII files [default: HDF5]')
 
-args =  parser.parse_args()
+args = parser.parse_args()
 files = args.file
 col = args.utc85col
 month = args.month
