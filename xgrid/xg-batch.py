@@ -1,22 +1,31 @@
 #!/usr/bin/env python
 """
- Generate and submit batch files for Xgrid computing. 
+Generate and submit batch files for Xgrid computing. 
 
- This script is a wrapper around the xgrid command line tool, that 
- facilitates the construction and submission of batch files given multiple 
- input files. 
+This script is a wrapper around the `xgrid` command line tool. It 
+facilitates the construction and submission of batch files for 
+*multiple* input files. 
 
- Example::
+Examples
+--------
 
-   $ python batch.py -s -j jobname -c '/path/to/prog -a arg' /path/to/files/*.ext 
+To see the available options::
 
- About Xgrid::
+$ python batch.py -h
 
-   http://www.apple.com/server/macosx/technology/xgrid.html
+To generate and submit a batch file with jobs that call a program
+`prog` with command line argument `arg` on several files::
 
- Fernando <fpaolo@ucsd.edu>
- March 6, 2011
+$ python batch.py -s -j jobname -c "/path/to/prog -a arg" /path/to/files/*.ext 
+
+See Also
+--------
+
+Xgrid: ``http://www.apple.com/server/macosx/technology/xgrid.html``
+
 """
+# Fernando <fpaolo@ucsd.edu>
+# March 6, 2011
 
 import argparse as ap
 import plistlib as pl
@@ -71,14 +80,17 @@ def create_tasks(args):
     execute = args.execute.split()
     cmd, arguments = execute[0], execute[1:]
     tasks = {}
-    if args.files and args.onetask:             # all files -> one task
+    if args.files and args.onetask:             
+        # all files -> one task
         tasks.setdefault(`0`, {'command': cmd, 
                                'arguments': arguments + args.files})
-    elif args.files:                            # each file -> one task
+    elif args.files:                            
+        # each file -> one task
         for i, f in enumerate(args.files):  
             tasks.setdefault(`i`, {'command': cmd, 
                                    'arguments': arguments + [f]})
-    else:                                       # no files
+    else:                                       
+        # no files
         tasks.setdefault(`0`, {'command': cmd, 
                                'arguments': arguments})
     return tasks
@@ -87,8 +99,8 @@ def create_tasks(args):
 def input_files(args):
     """Check if input files contain relative path (local files). 
        
-    If so, encode64 their content to be sent (over the network) 
-    to the agent machines.
+    If local files, encode64 their content to be sent (over the 
+    network) to the agent machines.
     """ 
     inputFiles = {}
     for f in args.files:
@@ -102,8 +114,8 @@ def input_files(args):
 def submit_batch(args):
     """Submit batch file (job) to the controller. 
 
-    Check first if the environmental variables for controller 'name' 
-    and 'password' are defined, otherwise raise an error.
+    Check first if the environmental variables for controller `name`
+    and `password` are defined, otherwise raise an error.
     """
     controller = os.environ.get('XGRID_CONTROLLER_HOSTNAME')
     password = os.environ.get('XGRID_CONTROLLER_PASSWORD')
@@ -139,7 +151,6 @@ def get_ids(args):
 
 
 def main():
-
     PLIST['jobSpecification']['taskSpecifications'] = create_tasks(args)
     PLIST['jobSpecification']['inputFiles'] = input_files(args) 
     PLIST['jobSpecification']['schedulerParameters']['dependsOnJobs'] = get_ids(args) 
