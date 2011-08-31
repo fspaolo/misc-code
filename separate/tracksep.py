@@ -10,14 +10,12 @@ doc = """\
 """
  Example
  -------
-
  To separate several track files in asc and des files (in-memory):
 
      $ python tracksep.py -m -f file1.h5 file2.h5 file3.h5
 
  Note
  ----
-
  Works for Southern Emisphere. For NH a small modification is needed!
 
  Fernando Paolo <fpaolo@ucsd.edu>
@@ -51,7 +49,7 @@ parser.add_argument('-m', dest='inmemory', default=False, action='store_const',
 args = parser.parse_args()
 LATCOL = args.latcol
 TIMECOL = args.timecol 
-TIMELAG = args.timelag  # sec
+TIMELAG = args.timelag  # in seconds
 
 try:
     import _tracksep as C       # C function for speed up!
@@ -63,7 +61,7 @@ except:
 
 
 def tracksep_indices(data, LATCOL, inmemory):
-    """Find the indices in `data' for ascending/descending tracks.
+    """Find the indices in `data` for ascending/descending tracks.
     """
     N = data.shape[0]
     i_asc = np.zeros(N, np.bool_)                           # data in-memory
@@ -103,7 +101,7 @@ def tracksep_indices(data, LATCOL, inmemory):
 
 
 def tracksep_flags(data, LATCOL, inmemory):
-    """Compute flags (0|1) in `data' for ascending/descending tracks.
+    """Compute flags (0|1) in `data` for ascending/descending tracks.
     """
     N = data.shape[0]
     flags = np.empty(N, np.uint8)                           # data in-memory

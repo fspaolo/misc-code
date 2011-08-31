@@ -1,5 +1,5 @@
 """
- Bin irregularly spaced data on independent rectangular cells (regular grid).
+ Bin irregularly spaced (2D) data on rectangular cells.
  
  Fernando Paolo <fpaolo@ucsd.edu>
  November 06, 2010
@@ -10,9 +10,8 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import sys
 
-def bindata(x, y, z, xi, yi, ppbin=False, binval='median'):
-    """
-    Bin irregularly spaced data on a regular grid (center of the bins).
+def bindata(x, y, z, xi, yi, ppbin=False, method='median'):
+    """Bin irregularly spaced data on a regular grid (center of the bins).
 
     Computes the median (default) or mean value within bins defined by
     regularly spaced xi and yi coordinates (the grid defining the bins).
@@ -28,7 +27,7 @@ def bindata(x, y, z, xi, yi, ppbin=False, binval='median'):
     ppbin : boolean, optional
         The function returns `bins` variable (see below for description): 
         [False | True].
-    binval : string, optional
+    method : string, optional
         The statistical operator used to compute the value of each 
         bin: ['median' | 'mean'].
    
@@ -46,8 +45,10 @@ def bindata(x, y, z, xi, yi, ppbin=False, binval='median'):
     ---------
     2010-11-06 Fernando Paolo, Initial version 
     """
+    if x.ndim != y.ndim != z.ndim != 1 or x.shape[0] != y.shape[0] != z.shape[0]:
+        raise TypeError('inputs x,y,z must all be 1D arrays of the same length')
 
-    if binval == 'median': 
+    if method == 'median': 
         median = True
     else:
         median = False
@@ -89,16 +90,15 @@ def bindata(x, y, z, xi, yi, ppbin=False, binval='median'):
         return grid
 
 
-def plotbins(xi, yi, grid, cmap=cm.Spectral_r):
-    """
-    Plot bins (the grid) with coordinated x- and y-axis.
+def plotbins(xi, yi, grid, cmap=cm.jet_r):
+    """Plot bins (the grid) with coordinated x- and y-axis.
     """
     if xi.shape[0] < 2 or yi.shape[0] < 2:
-        print 'x- or y-axis too small: N data < 2'
-        sys.exit()
+        raise TypeError('x- or y-axis too small: N data < 2')
     dx = xi[1] - xi[0]
     dy = yi[1] - yi[0]
     left, right, bottom, top = xi.min(), xi.max(), yi.min(), yi.max()
     extent = (left-dx/2., right+dx/2., bottom-dy/2., top+dy/2.)
     plt.imshow(grid, extent=extent, aspect='auto', origin='lower', \
                cmap=cmap, interpolation='nearest')
+    plt.show()

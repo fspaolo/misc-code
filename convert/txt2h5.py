@@ -4,8 +4,11 @@
 The program recognizes the type of input file (ASCII or HDF5) 
 and performs the conversion accordingly. If the name of the `fields` 
 are passed, the columns in the ASCII file will be converted to 1D
-arrays given the respective names. Otherwise a 2D array named `data` 
-(mirroring the ASCII file) is created.
+arrays in a `Table` given the respective names. Otherwise a 2D array 
+named `data` (mirroring the ASCII file) is created.
+
+For the reverse operation (HDF5 to ASCII) specific `fields` can be 
+selected for conversion, otherwise all `fields` are converted.
 
 Examples
 --------
@@ -14,11 +17,11 @@ To see the available options::
 $ python txt2h5.py -h
 
 To convert 3 `cols` of several ASCII files given the name of each 
-`field` (column)::
+`field` (column) and specifying a compression lib::
 
-$ python txt2h5.py -c 1,2,3 -f lon,lat,elev /path/to/files/*.txt
+$ python txt2h5.py -c 1,2,3 -f lon,lat,elev -l zlib /path/to/files/*.txt
 
-To convert some `fields` of an HDF5 table file::
+To convert some `fields` of an HDF5 `Table` file to ASCII::
 
 $ python txt2h5.py -f time,lon,lat,temp /path/to/files/*.h5
 
@@ -45,8 +48,8 @@ parser.add_argument('-f', dest='fields', default=[],
 parser.add_argument('-c', dest='usecols', default=(),
     help='ASCII columns to convert, ex: -c 3,0,1'
     '[default: all]')
-parser.add_argument('-l', dest='complib', default='zlib',
-    help='compression library to be used: zlib, lzo, bzip2, blosc [default: zlib]')
+parser.add_argument('-l', dest='complib', default='blosc',
+    help='compression library to be used: zlib, lzo, bzip2, blosc [default: blosc]')
 
 args = parser.parse_args()
 files = args.files

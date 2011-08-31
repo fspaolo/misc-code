@@ -26,7 +26,6 @@ parser.add_argument('-a', dest='ascii', default=False, action='store_const',
 
 args = parser.parse_args()
 
-
 class GetData(object):
     """Class to open a file and get the 2-D data (ASCII or HDF5).
     """
@@ -83,12 +82,12 @@ class PrepareData(object):
         if hasattr(self, 'fyear') and col is None:
             print 'using column `fyear` to average repeated values'
             for elem in self.fyear:
-                # 1. find repeated values
+                # 1) find repeated values
                 i, = np.where(self.fyear == elem)    
                 if i.shape[0] > 1:
-                    # 2. average repeated values
+                    # 2) average repeated values
                     self.data[i,:] = np.average(self.data[i,:], axis=0)
-            # 3. exclude repeated values
+            # 3) exclude repeated values
             self.fyear, ind = np.unique(self.fyear, return_index=True)
             self.data = self.data[ind,:] 
         else:
@@ -159,8 +158,8 @@ class FilterData(object):
         
         From: http://www.scipy.org/Cookbook/SignalSmooth
         
-        Input
-        -----
+        Parameters
+        ----------
         x : the input signal.
         window_len : the dimension of the smoothing window.
             Should be an odd integer.
@@ -293,7 +292,8 @@ class FilterData(object):
     #-------------------------------------------------------------------
 
     def plot_filter(self):
-
+        """Plot the filter response.
+        """
         from numpy import pi, absolute
         from scipy.signal import freqz
         import pylab as pl
@@ -376,6 +376,8 @@ def main():
     if plot:
         pl.plot(t0, y0, 'x', t, yf, 'k', linewidth=4)
         pl.show()
+
+    #np.savetxt('test_ts.txt', np.column_stack((t, y, yf)), fmt='%.3f')
     
 if __name__ == '__main__':
     main()
