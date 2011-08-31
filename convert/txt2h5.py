@@ -49,7 +49,8 @@ parser.add_argument('-c', dest='usecols', default=(),
     help='ASCII columns to convert, ex: -c 3,0,1'
     '[default: all]')
 parser.add_argument('-l', dest='complib', default='blosc',
-    help='compression library to be used: zlib, lzo, bzip2, blosc [default: blosc]')
+    help='compression library to be used: zlib, lzo, bzip2, blosc' 
+    '[default: blosc]')
 
 args = parser.parse_args()
 files = args.files
