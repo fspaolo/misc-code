@@ -8,7 +8,6 @@ facilitates the construction and submission of batch files for
 
 Examples
 --------
-
 To see the available options::
 
 $ python batch.py -h
@@ -20,7 +19,6 @@ $ python batch.py -s -j jobname -c "/path/to/prog -a arg" /path/to/files/*.ext
 
 See Also
 --------
-
 Xgrid: ``http://www.apple.com/server/macosx/technology/xgrid.html``
 
 """
