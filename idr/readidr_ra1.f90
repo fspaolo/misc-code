@@ -1,5 +1,4 @@
-!
-! Read 100-Byte IDR files: Seasat, Geosat, GFO and ERS-1/-2
+! Read 100-Byte IDR files: Seasat, Geosat, GFO and ERS-1/2
 !
 ! * convert MJD to time in seconds since 1-Jan-1985 (aka utc85 or ESA time)
 ! * unapply (add) tide correction, for later use of better ones

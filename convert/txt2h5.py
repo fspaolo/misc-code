@@ -118,7 +118,7 @@ def txt_to_h5(fname, dtype=dtype, usecols=(), complib='zlib'):
         outdata = h5f.createArray(h5f.root, 'data', data)
     else:
         print 'Table (%d, %d)' % data.shape
-        print dtype
+        print 'fields:', dtype['names'], dtype['formats']
         print 'compression lib:', complib
         data = np.rec.fromrecords(data, dtype=dtype)  # arr to rec
         filters = tb.Filters(complib=complib, complevel=9)
