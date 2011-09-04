@@ -43,37 +43,47 @@ parser.add_argument('files', nargs='+',
 parser.add_argument('-v', dest='verbose', default=False, action='store_const',
     const=True, help='for verbose [default: run silent]')
 parser.add_argument('-f', dest='fields', default=[],
-    help='names to be used for the `fields` (columns), ex: -f x,y,z'
+    help='names to be used for the `fields` (columns), ex: -f x,y,z '
     '[default: data]')
+parser.add_argument('-d', dest='formats', default=[],
+     help='data format of the resulting array, ex: -d i4,f8,f4 '
+     '[default: f8]')
 parser.add_argument('-c', dest='usecols', default=(),
-    help='ASCII columns to convert, ex: -c 3,0,1'
+    help='ASCII columns to convert, ex: -c 3,0,1 '
     '[default: all]')
-parser.add_argument('-l', dest='complib', default='blosc',
+parser.add_argument('-l', dest='complib', default='zlib',
     help='compression library to be used: zlib, lzo, bzip2, blosc' 
-    '[default: blosc]')
+    '[default: zlib]')
 
 args = parser.parse_args()
 files = args.files
 verbose = args.verbose
 fields = args.fields
+formats = args.formats
 usecols = args.usecols
 complib = args.complib
 
 if fields:
     fields = fields.split(',')
+if formats:
+    formats = formats.split(',')
+else:
+    formats = ['f8' for i in range(len(fields))]
 if usecols:
     usecols = eval(usecols)
+
+dtype = {'names': fields, 'formats': formats}
 
 
 def h5_to_txt(fname, fields=[]):
     """Converts HDF5 file with Table/Array to ASCII file.
     
     If the HDF5 is a `Table` and `fields` are passed, only those 
-    columns will be converted. If HDF5 is an `Array`, all is 
-    converted.
+    columns will be converted. If HDF5 is an `Array`, all columns
+    are converted.
     """
     if os.path.getsize(fname) == 0:
-        print 'file is empty!.'
+        print 'file is empty!'
         return
     h5f = tb.openFile(fname)
     for leaf in h5f.walkNodes('/', classname='Leaf'):
@@ -81,9 +91,9 @@ def h5_to_txt(fname, fields=[]):
             if not fields:
                 fields = leaf.colnames
             print 'Table (%d, %d)' % (leaf.nrows, len(fields))
+            print 'fields:', fields
             data = np.array([leaf.col(col) for col in fields])
             data = data.T
-            #data = np.rec.fromarrays([leaf.col(col) for col in fields])
         else:
             print 'Array (%d, %d)' % leaf.shape
             data = leaf.read()
@@ -91,21 +101,26 @@ def h5_to_txt(fname, fields=[]):
     h5f.close()
 
 
-def txt_to_h5(fname, fields=[], usecols=(), complib='zlib'):
+def txt_to_h5(fname, dtype=dtype, usecols=(), complib='zlib'):
     """Converts ASCII file with data columns to HDF5 file.
 
-    If `fields` are passed the ASCII data is converted to a `Table`,
-    otherwise is converted to a 2D `Array` mirroring the ASCII file.
+    If `dtype` (a dictionary) with `fields` is passed the ASCII data 
+    is converted to a `Table`, otherwise is converted to a 2D `Array` 
+    mirroring the ASCII file.
     """
     if os.path.getsize(fname) == 0:
-        print 'file is empty!.'
+        print 'file is empty!'
         return
     data = np.loadtxt(fname, usecols=usecols)  # data in-memory
     h5f = tb.openFile(os.path.splitext(fname)[0] + '.h5', 'w')
-    if not fields:
+    if not dtype['names']:
+        print 'Array (%d, %d)' % data.shape
         outdata = h5f.createArray(h5f.root, 'data', data)
     else:
-        data = np.rec.fromarrays(data.T, names=fields)  # arr to rec
+        print 'Table (%d, %d)' % data.shape
+        print dtype
+        print 'compression lib:', complib
+        data = np.rec.fromrecords(data, dtype=dtype)  # arr to rec
         filters = tb.Filters(complib=complib, complevel=9)
         outdata = h5f.createTable(h5f.root, 'data', data, filters=filters)
     h5f.close()
@@ -119,10 +134,10 @@ def main():
             print 'file:', f
         if mime == 'text/plain':
             print 'ASCII -> HDF5 ...'
-            txt_to_h5(f, fields, usecols, complib)
+            txt_to_h5(f, dtype, usecols, complib)
         else:
             print 'HDF5 -> ASCII ...'
-            h5_to_txt(f, fields)
+            h5_to_txt(f, dtype['names'])
     print 'done.'
 
 if __name__ == '__main__':
