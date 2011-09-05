@@ -50,7 +50,7 @@ parser.add_argument('-d', dest='formats', default=[],
      '[default: f8]')
 parser.add_argument('-c', dest='usecols', default=(),
     help='ASCII columns to convert, ex: -c 3,0,1 '
-    '[default: all]')
+    '[default: all cols]')
 parser.add_argument('-l', dest='complib', default='zlib',
     help='compression library to be used: zlib, lzo, bzip2, blosc' 
     '[default: zlib]')
