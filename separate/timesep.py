@@ -24,11 +24,11 @@ parser.add_argument('file', nargs='+', help='HDF5/ASCII file[s] to read')
 parser.add_argument('-c', dest='utc85col', type=int, default=1, 
     help='column of utc85 variable (0,1..) [default: 1]')
 group.add_argument('-m', dest='month', action='store_const', const=True,
-    help='separate by months [default: by years]')
+    help='separate by month [default: by year]')
 group.add_argument('-w', dest='window', nargs=2, type=int, metavar=('MON1', 'MON2'),
     help='separate by month-window (MON=1,2..12, increasing order)')
 group.add_argument('-s', dest='season', action='store_const', const=True,
-    help='separate by seasons [default: by years]')
+    help='separate by season [default: by year]')
 parser.add_argument('-d', dest='dir', action='store_const', const=True, \
     default=False, help='create directories for output files [default: no]')
 parser.add_argument('-a', dest='ascii', default=False, action='store_const',
@@ -56,14 +56,14 @@ else:
 print 'files to read:', len(files)
 print 'time (utc85) column:', col
 if month is not None:
-    print 'separate by: months'
+    print 'separate by: month'
 elif window is not None:
     M1, M2 = window
     print 'separate by: month-window', mname[M1], mname[M2]
 elif season is not None:
-    print 'separate by: seasons'
+    print 'separate by: season'
 else:
-    print 'separate by: years'
+    print 'separate by: year'
 print 'create directories:', dir
 
 

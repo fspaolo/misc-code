@@ -157,6 +157,7 @@ class Mask(object):
         print 'parameters:'
         print 'standard lat:', slat
         print 'standard lon:', slon
+        print 'hemisphere:', hemi
         print 'units of x,y:', units
         print "converting from 'lon,lat' to 'x,y' ..."
 
@@ -278,6 +279,7 @@ class Mask(object):
         print 'parameters:'
         print 'standard lat:', slat
         print 'standard lon:', slon
+        print 'hemisphere:', hemi
         print 'units of x,y:', units
         print "converting from 'x,y' to 'lon,lat' ..."
 

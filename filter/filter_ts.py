@@ -374,7 +374,10 @@ def main():
     #yf = sg.lfilter(b, a, y)
         
     if plot:
-        pl.plot(t0, y0, 'x', t, yf, 'k', linewidth=4)
+        pl.errorbar(t0, y0, yerr=1.5, alpha=.5)
+        pl.plot(t, yf, 'k', linewidth=4)
+        #pl.plot(t0, y0, 'x', t, yf, 'k', linewidth=4)
+        pl.savefig('ts.png')
         pl.show()
 
     #np.savetxt('test_ts.txt', np.column_stack((t, y, yf)), fmt='%.3f')

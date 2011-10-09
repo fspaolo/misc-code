@@ -78,7 +78,7 @@ for f in files:
     else:
         fout = tb.openFile(os.path.splitext(f)[0] + ext, 'w')
         atom = tb.Atom.from_dtype(dataout.dtype)
-        filters = tb.Filters(complib='blosc', complevel=5)
+        filters = tb.Filters(complib='blosc', complevel=9)
         dout = fout.createCArray(fout.root,'data', atom=atom, shape=dataout.shape,
                                  filters=filters)
         dout[:] = dataout

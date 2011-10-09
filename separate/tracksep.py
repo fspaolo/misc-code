@@ -58,6 +58,7 @@ try:
 except:
     cmodule = False
     print "couln't import C module!"
+    print 'using pure python instead'
 
 
 def tracksep_indices(data, LATCOL, inmemory):
