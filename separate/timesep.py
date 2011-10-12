@@ -217,7 +217,7 @@ def main():
                     fout = tb.openFile(outfile, 'w')
                     shape = data[IND,:].shape
                     atom = tb.Atom.from_dtype(data.dtype)
-                    filters = tb.Filters(complib='blosc', complevel=5)
+                    filters = tb.Filters(complib='blosc', complevel=9)
                     dout = fout.createCArray(fout.root,'data', atom=atom, shape=shape,
                                              filters=filters)
                     dout[:] = data[IND,:] 
