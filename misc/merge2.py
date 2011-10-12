@@ -21,12 +21,13 @@ import os
 parser = ap.ArgumentParser()
 parser.add_argument('file', nargs='+', help='HDF5/ASCII file[s] to merge')
 parser.add_argument('-p', dest='pattern', default="_\d\d\d\d", 
-                    help="pattern to match in the file name (w/o ext)" 
+                    help="pattern to match in the file names " 
                     "[default: '_\d\d\d\d']")
 parser.add_argument('-o', dest='prefix', default='all_', 
                     help='prefix of output file name [default: all_]')
 parser.add_argument('-a', dest='ascii', default=False, action='store_const',
-                    const=True, help='reads and writes ASCII files [default HDF5]')
+                    const=True, help='reads and writes ASCII files ' 
+                    '[default HDF5]')
 
 args = parser.parse_args()
 PATTERN = str(args.pattern)
@@ -56,12 +57,12 @@ while args.file:
         if match:
             isfirst = True
             match = match.group()
-            # check if character in common (duplicates)
+            # check if there is character in common (duplicate)
             if args.prefix[-1] == match[0] and match[0] in ['_', '-']:
                 suffix = match[1:]                    
             else:
                 suffix = match[:]                    
-            # avoid duplicating the extension
+            # avoid duplicating the extension in the file name
             suffix, ext2 = os.path.splitext(suffix)
             fname = ''.join([args.prefix, suffix, ext])
             outfile = os.path.join(path, fname)
