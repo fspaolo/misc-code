@@ -151,6 +151,7 @@ class Mask(object):
                                         case-sensitive)
         x             O     Polar Stereographic X Coordinate (km)
         y             O     Polar Stereographic Y Coordinate (km)
+
         """
         if units != 'm':
             units = 'km'

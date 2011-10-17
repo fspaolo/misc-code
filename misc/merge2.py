@@ -30,7 +30,17 @@ parser.add_argument('-a', dest='ascii', default=False, action='store_const',
                     '[default HDF5]')
 
 args = parser.parse_args()
+
+if len(args.file) > 1:
+    files = args.file
+else:
+    # to avoid Unix limitation on number of cmd args: use `glob`
+    from glob import glob
+    # pass a str with `dir + file pattern` instead of files
+    files = glob(args.file[0])   
+
 PATTERN = str(args.pattern)
+
 
 print 'pattern to match:', PATTERN
 
@@ -41,18 +51,18 @@ else:
     ext = '.h5'
     print 'reading and writing HDF5 files'
 
-if args.file:
-    path, _ = os.path.split(args.file[0])          # path of first file
-    print 'merging files: %d ...' % len(args.file)
+if files:
+    path, _ = os.path.split(files[0])          # path of first file
+    print 'merging files: %d ...' % len(files)
 else:
     print 'no input files!'
     sys.exit()
 
-while args.file:
+while files:
 
     ### search first file that matches the pattern
 
-    for j, ff in enumerate(args.file):    
+    for j, ff in enumerate(files):    
         match = re.search(PATTERN, ff)
         if match:
             isfirst = True
@@ -68,12 +78,12 @@ while args.file:
             outfile = os.path.join(path, fname)
             break
         else:
-            args.file[j] = None          # mark no matched files
+            files[j] = None          # mark no matched files
             continue
 
     ### match all files to the first found 
 
-    for i, f in enumerate(args.file):    
+    for i, f in enumerate(files):    
         if match and f and match in f:
             if args.ascii:
                 data = np.loadtxt(f)
@@ -96,9 +106,9 @@ while args.file:
                 dout.append(data[:])
                 fin.close()
 
-            args.file[i] = None            # mark merged files
+            files[i] = None            # mark merged files
             
-    args.file = filter(None, args.file)    # filter out marked files
+    files = filter(None, files)    # filter out marked files
     if not args.ascii:
         try:                               # if 'fout' was open
             if fout.isopen:

@@ -9,8 +9,8 @@ area: left, right, bottom, top (all inclusive).
 # Fernando <fpaolo@ucsd.edu>
 # November 4, 2010
 
-import sys
 import os
+import sys
 import argparse as ap
 import numpy as np
 import tables as tb
@@ -18,7 +18,8 @@ import tables as tb
 # parse command line arguments
 parser = ap.ArgumentParser()
 parser.add_argument('file', nargs='+', help='HDF5/ASCII file[s] to read')
-parser.add_argument('-r', dest='N', nargs=4, type=float, metavar=('L', 'R', 'B', 'T'),
+parser.add_argument('-r', dest='N', nargs=4, type=float, 
+    metavar=('L', 'R', 'B', 'T'),
     help='geographic coordinates to extract: left right bottom top')
 parser.add_argument('-x', dest='loncol', default=3, type=int,
     help='column of longitude in the file (0,1,..) [default: 3]')
