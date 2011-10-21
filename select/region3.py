@@ -103,7 +103,7 @@ class CheckBounds(object):
 
     def _print_msg(self, msg):
         if msg == 1:
-            print 'error: region must be: left < right, bottom < top'
+            print 'error: region must be: `left` < `right` and `bottom` < `top`'
         elif msg == 2:
             print 'error: longitude or latitude out of bounds:'
         else:
@@ -112,8 +112,9 @@ class CheckBounds(object):
         print 'bottom/top:', self.bottom, self.top
         sys.exit()
 
-class Points(object):
-
+class SubRegion(object):
+    """Defines a geographic subregion with data points.
+    """
     def __init__(self, lon, lat, fmask, flag, left, right, 
                  bottom, top, dl, dr):
         self.lon = lon
@@ -128,7 +129,7 @@ class Points(object):
         self.flag = flag
 
     def find_pts(self, pts):
-        """Find all the pts in a subregion with the `borders`.
+        """Find all the pts in a subregion with `borders`.
         """
         # conditions
         lons0 = (self.left <= self.lon) & (self.lon < self.right) 
@@ -145,7 +146,7 @@ class Points(object):
                 ind, = np.where( (lons1 | lons2) & lats0 )
             elif pts == 'ice':
                 ind, = np.where( (lons1 | lons2) & lats0 & fmask )
-        # subregion finishing at 360 
+        # subregion ending at 360 
         elif self.left >= 0 and self.right > 360:
             if pts == 'all':
                 ind, = np.where( (lons3 | lons4) & lats0 )
@@ -214,13 +215,15 @@ for f in files:
 
         # warning: this may not test *all* the cases!!!
 
-        p = Points(lon, lat, fmask, flag, i_left, i_right, i_bottom, i_top, dl, dr)
-        ind = p.find_pts('ice')
-        p.top = p.find_max_lat(ind) + 1.5    # set upper boundary
-        if i_region == 16: p.top = -66
-        if i_region == 29: p.top = -62.4
-        if i_region == 31: p.top = -75
-        ind = p.find_pts('all')
+        s = SubRegion(lon, lat, fmask, flag, i_left, i_right, i_bottom, i_top, dl, dr)
+        ind = s.find_pts('ice')
+        s.top = s.find_max_lat(ind) + 1.5    # set upper boundary
+        if i_region == 16: s.top = -66
+        if i_region == 29: s.top = -62.4
+        if i_region == 31: s.top = -75
+        ind = s.find_pts('all')
+        print data[ind,:]
+        continue
 
         if ind.shape[0]:
             outfile = '%s%s%02d%s' % (os.path.splitext(f)[0], 

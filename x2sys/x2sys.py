@@ -161,8 +161,8 @@ for file_i in files:
     try:
         data = np.loadtxt(file_out, skiprows=skiprows, usecols=usecols)
         np.savetxt(file_out + '.txt', data, fmt='%.6f')
-        nxovers += data.shape[0]
         saveh5(file_out + '.h5', data)
+        nxovers += data.shape[0]
         nfiles += 1
         print 'number of crossovers:', data.shape[0]
     except:
