@@ -6,9 +6,9 @@ Merge all files that have a common (given) pattern in the name.
 The patterns may be numbers and/or characters. Example: 'YYYYMM', 
 where YYYY is year and MM is month.
 
-Fernando <fpaolo@ucsd.edu>
-November 4, 2010
 """
+# Fernando <fpaolo@ucsd.edu>
+# November 4, 2010
 
 import numpy as np
 import tables as tb

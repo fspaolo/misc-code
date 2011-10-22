@@ -222,8 +222,6 @@ for f in files:
         if i_region == 29: s.top = -62.4
         if i_region == 31: s.top = -75
         ind = s.find_pts('all')
-        print data[ind,:]
-        continue
 
         if ind.shape[0]:
             outfile = '%s%s%02d%s' % (os.path.splitext(f)[0], 
