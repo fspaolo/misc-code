@@ -10,12 +10,12 @@ October 22, 2010
 import os
 os.environ['MPLCONFIGDIR'] = '/var/tmp'    # to ensure a writable dir when 
                                            # accessing Xgrid as "nobody"
+import sys
+import datetime as dt
 import numpy as np
 import tables as tb
 import argparse as ap
-import datetime as dt
 import matplotlib.dates as mpl
-import sys
 
 # parse command line arguments
 parser = ap.ArgumentParser(description=doc)
@@ -69,14 +69,17 @@ print 'create directories:', dir
 
 class Utc85(object):
     """Converts utc85 to convenient date formats: year, month, day... 
+
+    Note: Matlab uses as time reference the year 0000, and Python 
+    `datetime` uses the year 0001.
     """
     def __init__(self, utc85=0):
         if type(utc85).__name__ != 'ndarray':
             self.utc85 = np.array([utc85])
         else:
-            self.utc85 = utc85
+            self.utc85 = utc85  # seconds since 1985-Jan-1 00:00:00
 
-        # 1-Jan-1985 00:00:00h in days (since 1-Jan-0001)
+        # 1985-Jan-1 00:00:00 in days (since year 0001-Jan-1 00:00:00)
         self.DAYS85 = mpl.date2num(dt.date(1985, 1, 1))  
 
         # utc85/86400 -> frac days -> date
