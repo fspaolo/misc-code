@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 doc = """\
- Given utc85 time separate files by: years, seasons, months or month-window.
+Given utc85 time separate files by: years, seasons, months or month-window.
 """ 
 """
- Fernando Paolo <fpaolo@ucsd.edu>
- October 22, 2010
+Fernando Paolo <fpaolo@ucsd.edu>
+October 22, 2010
 """
 
 import os
-os.environ['MPLCONFIGDIR'] = '/var/tmp'    # to ensure a writable dir when "nobody"
-
+os.environ['MPLCONFIGDIR'] = '/var/tmp'    # to ensure a writable dir when 
+                                           # accessing Xgrid as "nobody"
 import numpy as np
 import tables as tb
 import argparse as ap
@@ -67,7 +67,7 @@ else:
 print 'create directories:', dir
 
 
-class Utc85:
+class Utc85(object):
     """Converts utc85 to convenient date formats: year, month, day... 
     """
     def __init__(self, utc85=0):

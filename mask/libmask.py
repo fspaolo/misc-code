@@ -24,9 +24,8 @@ except:
 
 
 class Mask(object):
-
-    """Class to apply the MODIS Antarctic ice mask."""
-
+    """Class to apply the MODIS Antarctic ice mask.
+    """
     def __init__(self, maskfile=None):
         if maskfile is not None:
             if os.path.splitext(maskfile)[1] == '.mat':
@@ -42,9 +41,8 @@ class Mask(object):
 
 
     def getmask_mat(self, maskfile):
-
-        """Get mask from Matlab file (*.mat)."""
-
+        """Get mask from Matlab file (*.mat).
+        """
         try:
             print 'loading mask file:', maskfile, '...'
             mfile = io.loadmat(maskfile, squeeze_me=True, struct_as_record=True)
@@ -61,9 +59,8 @@ class Mask(object):
     
 
     def getmask(self, maskfile):
-
-        """Get mask from HDF5 file (*.h5)."""
-
+        """Get mask from HDF5 file (*.h5).
+        """
         try:
             print 'loading mask file:', maskfile, '...'
             self.fmask = tb.openFile(maskfile, 'r')  # don't forget to close!
@@ -79,7 +76,6 @@ class Mask(object):
               
 
     def closemask(self):
-
         """Close the opened HDF5 mask file.
         """
         try:
@@ -90,7 +86,6 @@ class Mask(object):
 
 
     def mapll(self, lon, lat, slat=71, slon=-70, hemi='s', units='km'):
-
         """Convert from 'lon,lat' to polar stereographic 'x,y'.
      
         This function converts from geodetic latitude and longitude to
@@ -215,7 +210,6 @@ class Mask(object):
      
      
     def mapxy(self, x, y, slat=71, slon=-70, hemi='s', units='km'):
-
         """Convert from polar stereographic 'x,y' to 'lon,lat'.
      
         This subroutine converts from Polar Stereographic 'x,y' coordinates 
@@ -274,6 +268,7 @@ class Mask(object):
                                         not case-sensitive)
         lat           O     Geodetic Latitude (degrees, +90 to -90)
         lon           O     Geodetic Longitude (degrees, 0 to 360) 
+
         """
         if units != 'm':
             units = 'km'
@@ -345,7 +340,6 @@ class Mask(object):
 
     def applymask(self, data, latcol=2, loncol=3, slat=71, slon=-70, \
                   hemi='s', border=3):
-
         """Apply the MOA mask to a data set given the conditions.
         
         Parameters
@@ -375,6 +369,7 @@ class Mask(object):
         -------
         >>> m = Mask('maskfilename')
         >>> dataout = m.applymask(data, latcol=1, loncol=2, border=3)
+
         """
         #if type(data).__name__ != 'ndarray':
         #    print "error: applymask: 'data' must be ndarray:"
@@ -479,9 +474,8 @@ class Mask(object):
 
 
     def plotmask(self, region=None, resolution=20, slat=71, slon=-70, hemi='s'):
-
-        """Plot the mask."""
-
+        """Plot the mask.
+        """
         try:
             import enthought.mayavi.mlab as ml 
             mayavi = True
