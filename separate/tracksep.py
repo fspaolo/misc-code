@@ -1,32 +1,32 @@
 #!/usr/bin/env python
 doc = """\
- Separate satellite tracks in asc/des using latitude and time.
+Separate satellite tracks in asc/des using `latitude` and `time`.
 
- Two output options:
+Two output options:
 
- 1) Add extra column with flags: 0=ascending, 1=descending [default]
- 2) Separated tracks in different output files: file_asc.ext, file_des.ext
+1) Add extra column with flags: 0=ascending, 1=descending [default]
+2) Separated tracks in different output files: file_asc.ext, file_des.ext
 """
 """
- Example
- -------
- To separate several track files in asc and des files (in-memory):
+Example
+-------
+To separate several track files in asc and des files (in-memory):
 
-     $ python tracksep.py -m -f file1.h5 file2.h5 file3.h5
+    $ python tracksep.py -m -f file1.h5 file2.h5 file3.h5
 
- Note
- ----
- Works for Southern Emisphere. For NH a small modification is needed!
+Note
+----
+Works for Southern Emisphere. For NH a small modification is needed!
 
- Fernando Paolo <fpaolo@ucsd.edu>
- November 1, 2010
+Fernando Paolo <fpaolo@ucsd.edu>
+November 1, 2010
 """
 
+import os
+import sys
 import numpy as np
 import tables as tb
 import argparse as ap
-import sys
-import os
 
 # parse command line arguments
 parser = ap.ArgumentParser(formatter_class=ap.RawTextHelpFormatter, description=doc)
