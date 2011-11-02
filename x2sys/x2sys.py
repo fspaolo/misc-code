@@ -76,7 +76,7 @@ ascii = args.ascii
 # to avoid crossing reffile w/itself
 if file_ref in files: 
     #files.remove(file_ref) 
-    print 'crossing reference file with it self!!!!!!!!!!!!!'
+    print 'crossing reference file with it self!!!'
     if not files:
         print 'ref file:', file_ref
         print 'not crossing ref file w/itself!'
