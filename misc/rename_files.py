@@ -2,8 +2,6 @@ import os
 import sys
 import re
 
-# for naming use `keyNumber`: 'geoerm_y1989_m01_r89_t1.h5'
-
 files = sys.argv[1:]
 if len(files) < 1 or '-h' in files:
     print 'usage: python %s file1.h5 file2.h5 ...' % sys.argv[0]
@@ -22,21 +20,27 @@ print 'reading files:', len(files)
 #            fname = newname
 
 # sort files by `pattern`
-p = lambda s: re.findall('y\d+', s)[0] + re.findall('m\d+', s)[0][-2:]
-files.sort(key=p)
+#p = lambda s: re.findall('y\d+', s)[0] + re.findall('m\d+', s)[0][-2:]
+#p = lambda s: re.findall('\d+', s)[0] + re.findall('\d+', s)[0][-2:]
+#files.sort(key=p)
 
 # return only the digits
 d = lambda s: ''.join([k for k in s if k.isdigit()])
 
-for i, fname in enumerate(files):
+for fname in files:
 
-    # get and generate new name 
+    ### get and generate new name 
     name = os.path.splitext(os.path.basename(fname))[0]
-    sat = name.split('_')[0]
-    year, month, reg = re.findall('[ymr]\d+', name)
-    newname = '_'.join([sat, 'y'+d(year), 'm'+d(month), 'r'+d(reg), 't%d'%i])
+    sat, year, month, reg = name.split('_')[:4]
+    #sat, time, reg = name.split('_')[:4]
+    time = d(year) + '%02d' % (int(d(month)[-2:]) - 1)
+    reg = '%02d' % (int(d(reg)) + 1)
+    #reg = '%02d' % (int(d(reg)) - 1)
+    newname = '_'.join([sat, time, reg])
+    #year, month, reg = re.findall('[ymr]\d+', name)
+    #newname = '_'.join([sat, 'y'+d(year), 'm'+d(month), 'r'+d(reg)])
 
-    # rename the file
+    ### rename the file
     newfname = fname.replace(name, newname)
     os.rename(fname, newfname)
     #print 'new fname:', newfname
