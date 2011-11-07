@@ -25,12 +25,12 @@ Xgrid: ``http://www.apple.com/server/macosx/technology/xgrid.html``
 # Fernando <fpaolo@ucsd.edu>
 # March 6, 2011
 
+import os
+import sys
+import re
 import argparse as ap
 import plistlib as pl
 from glob import glob
-import re
-import os
-import sys
 
 # parse command line arguments
 parser = ap.ArgumentParser()
@@ -48,30 +48,44 @@ parser.add_argument('-d', dest='depends', nargs=1, #metavar=("'id1 id2 ...'"),
     "-d dir_with_id_files] ")
 parser.add_argument('-e', dest='email', default='', help='email to send '
     'notification of job state')
-parser.add_argument('-1', dest='onetask', default=False, action='store_const', 
-    const=True, help='create one single task with all files '
+parser.add_argument('-0', dest='multitask', default=True, action='store_const', 
+    const=True, help='create one task per input files (multi-task) '
+    '[default]')
+parser.add_argument('-1', dest='singletask', default=False, action='store_const', 
+    const=True, help='create a single task with all input files '
+    '[default: multi-task]')
+parser.add_argument('-2', dest='combinedtask', default=False, action='store_const', 
+    const=True, help='create one task every two combined input files ' 
     '[default: multi-task]')
 parser.add_argument('-s', dest='submit', default=False, action='store_const', 
     const=True, help='submit batch file after creation')
-parser.add_argument('-p', dest='combine', default=False, action='store_const', 
-    const=True, help='find all combinations (pairs) of the input files')
 
 args = parser.parse_args()
-combine = args.combine
+files = args.files
+execute = args.execute.split()
+batchfile = args.batchfile
+jobname = args.jobname
+depends = args.depends
+email = args.email
+submit = args.submit
+task = {}
+task['single'] = args.singletask
+task['multi'] = args.multitask
+task['combined'] = args.combinedtask
 
-if not args.batchfile: 
-    args.batchfile = args.jobname + '.xml'  # job name plus extension
+if not batchfile: 
+    batchfile = jobname + '.xml'  # job name plus extension
 
-if combine:
+if task['combined']:
     from itertools import combinations
-    args.files = [' '.join([f1, f2]) for f1, f2 in combinations(args.files, 2)]
+    files = combinations(files, 2)
 
 # define a basic structure for an Xgrid batch file.
 PLIST = {
     'jobSpecification': {
         'applicationIdentifier': 'com.apple.xgrid.cli',
-        'name': args.jobname,
-        'notificationEmail': args.email,
+        'name': jobname,
+        'notificationEmail': email,
         'schedulerParameters': {'dependsOnJobs': []},
         'inputFiles': {},
         'taskSpecifications': {},
@@ -79,36 +93,40 @@ PLIST = {
     }
 
  
-def create_tasks(args):
+def create_tasks(*args):
     """Create individual tasks given command and arguments/files.
     """
-    execute = args.execute.split()
     cmd, arguments = execute[0], execute[1:]
     tasks = {}
-    if args.files and args.onetask:             
-        # all files -> one task
+    # 1. all files -> one task (sequential)
+    if task['single'] and files:             
         tasks.setdefault(`0`, {'command': cmd, 
-                               'arguments': arguments + args.files})
-    elif args.files:                            
-        # each file -> one task
-        for i, f in enumerate(args.files):  
+                               'arguments': arguments + files})
+    # 2. each file -> one task (parallel)
+    elif task['multi'] and files:                            
+        for i, f in enumerate(files):  
             tasks.setdefault(`i`, {'command': cmd, 
                                    'arguments': arguments + [f]})
+    # 3. every two files -> one task (parallel)
+    elif task['combined'] and files:                            
+        for i, (f1, f2) in enumerate(files):  
+            tasks.setdefault(`i`, {'command': cmd, 
+                                   'arguments': arguments + [f1, f2]})
+    # 4. no files
     else:                                       
-        # no files
         tasks.setdefault(`0`, {'command': cmd, 
                                'arguments': arguments})
     return tasks
 
 
-def input_files(args):
+def input_files(*args):
     """Check if input files contain relative path (local files). 
        
     If local files, encode64 their content to be sent (over the 
     network) to the agent machines.
     """ 
     inputFiles = {}
-    for f in args.files:
+    for f in files:
        if not os.path.isabs(f):
            file = open(f).read()
            inputFiles.setdefault(f, {'fileData': pl.Data(file), 
@@ -116,7 +134,7 @@ def input_files(args):
     return inputFiles
 
 
-def submit_batch(args):
+def submit_batch(*args):
     """Submit batch file (job) to the controller. 
 
     Check first if the environmental variables for controller `name`
@@ -130,42 +148,43 @@ def submit_batch(args):
         print 'XGRID_CONTROLLER_HOSTNAME=hostname'
         print 'XGRID_CONTROLLER_PASSWORD=password'
         sys.exit()
-    print 'job ID file -> %s.id' % args.jobname 
+    print 'job ID file -> %s.id' % jobname 
     print 'job submitted:'
-    os.system('xgrid -job batch %s > %s.id' % (args.batchfile, args.jobname))
-    os.system('cat %s.id' % args.jobname)
+    os.system('xgrid -job batch %s > %s.id' % (batchfile, jobname))
+    os.system('cat %s.id' % jobname)
 
 
-def get_ids(args):
+def get_ids(*args):
     """Get job IDs. 
 
     Get a list of ID numbers passed on the command line or by
     scanning the content of ID files in a *given* directory.
     """
     ids = []
-    if args.depends is not None:
-        depends = args.depends[0]              # str with numbers or directory
-        if os.path.isdir(depends):
-            files = glob('%s/*.id' % depends)  # search for *.id files
+    if depends is not None:    # str with numbers or directory
+        if os.path.isdir(depends[0]):
+            files = glob('%s/*.id' % depends[0])  # search for `*.id` files
             for fname in files:
                 idNo = re.findall('\d+', open(fname).read())
                 ids.append(idNo[0])
         else:
-            ids = depends.split()
+            ids = depends[0].split()
     return ids
 
 
 def main():
-    PLIST['jobSpecification']['taskSpecifications'] = create_tasks(args)
-    PLIST['jobSpecification']['inputFiles'] = input_files(args) 
-    PLIST['jobSpecification']['schedulerParameters']['dependsOnJobs'] = get_ids(args) 
+    PLIST['jobSpecification']['taskSpecifications'] \
+        = create_tasks(execute, task)
+    PLIST['jobSpecification']['inputFiles'] = input_files(files) 
+    PLIST['jobSpecification']['schedulerParameters']['dependsOnJobs'] \
+        = get_ids(depends) 
 
-    pl.writePlist(PLIST, args.batchfile)
+    pl.writePlist(PLIST, batchfile)
 
-    print 'batch file ->', args.batchfile 
+    print 'batch file ->', batchfile 
 
-    if args.submit: 
-        submit_batch(args)
+    if submit: 
+        submit_batch(batchfile, jobname)
 
 
 if __name__ == '__main__':
