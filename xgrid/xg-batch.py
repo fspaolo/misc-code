@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Generate and submit batch files for Xgrid computing. 
+Generate and submit batch files for Apple Xgrid computing. 
 
 This script is a wrapper around the `xgrid` command line tool. It 
 facilitates the construction and submission of batch files for 
@@ -53,11 +53,18 @@ parser.add_argument('-1', dest='onetask', default=False, action='store_const',
     '[default: multi-task]')
 parser.add_argument('-s', dest='submit', default=False, action='store_const', 
     const=True, help='submit batch file after creation')
+parser.add_argument('-p', dest='combine', default=False, action='store_const', 
+    const=True, help='find all combinations (pairs) of the input files')
 
 args = parser.parse_args()
+combine = args.combine
+
 if not args.batchfile: 
     args.batchfile = args.jobname + '.xml'  # job name plus extension
 
+if combine:
+    from itertools import combinations
+    args.files = [' '.join([f1, f2]) for f1, f2 in combinations(args.files, 2)]
 
 # define a basic structure for an Xgrid batch file.
 PLIST = {

@@ -2,15 +2,26 @@
 Script to automatize the input/output of GMT's x2sys program.
 
 Read several HDF5/ASCII files and cross them with a given *reference* 
-file. Example, for a `reffile_0.ext` and `infile_1.ext, infile_2.ext, 
-infile_3.ext, ...`, we would have:
+file. Example, for a reference `file0.ext` and an input list `file1.ext, 
+file2.ext, file3.ext, ...`, we have:
 
-    reffile0.ext - infile1.ext, 
-    reffile0.ext - infile2.ext, 
-    reffile0.ext - infile3.ext, 
+    $ x2sys.py -r file0.ext file1.ext file2.ext file3.ext ...
+
+    with crossover outputs:
+
+    file0.ext - file1.ext, 
+    file0.ext - file2.ext, 
+    file0.ext - file3.ext, 
     ... 
 
-Note: command line options for the `x2sys` program are automatically read 
+Note 1
+------
+If `-r` option is not specified, then the reference file is the first
+of the input file list.
+
+Note 2
+------
+command line options for the `x2sys` program are automatically read 
 from a configuration file `x2sys.ini` that can be edited.
 
 """
@@ -59,22 +70,25 @@ parser.add_argument('-i', dest='init', default=False, action='store_const',
 
 args = parser.parse_args()
 
-if not args.init and args.reffile is None:
-    raise IOError("x2sys.py: argument `-r` is required")
 if not args.init and not args.files:
     raise IOError("x2sys.py: no input files")
 
-files_in = args.files
+if not args.init and args.reffile is None and len(args.files) < 2:
+    raise IOError("x2sys.py: w/o `-r` option input files must be > 1")
+
 file_ref = args.reffile
+files_in = args.files
 skiprows = args.skiprows
 usecols = args.cols
 ascii = args.ascii
 
+if args.reffile is None:
+    file_ref = files_in[0]
 
 # remove reffile from the input file list
 # to avoid crossing reffile w/itself
 if file_ref in files_in: 
-    #files_in.remove(file_ref) 
+    files_in.remove(file_ref) 
     print 'attempting to cross reference file with it self!!!'
 
 
@@ -175,7 +189,6 @@ def main():
             file_out = None
             print 'no crossovers found!'
             #raise  # shows the error
-        
 
     print 'done.'
     print 'total crossovers:', nxovers
