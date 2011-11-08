@@ -88,7 +88,7 @@ if args.reffile is None:
 # remove reffile from the input file list
 # to avoid crossing reffile w/itself
 if file_ref in files_in: 
-    files_in.remove(file_ref) 
+    #files_in.remove(file_ref) 
     print 'attempting to cross reference file with it self!!!'
 
 
@@ -147,7 +147,7 @@ def fname_out_no_ext2(fname1, fname2):
     path2 = os.path.split(fname2)[0]
     fname1, _ = os.path.splitext(os.path.basename(fname1))
     sat, t1, r1 = fname1.split('_')[:3]
-    t2 = fname2.split('_')[1]
+    t2 = re.search('\d\d\d\d\d\d', fname2).group()
     return os.path.join(path2, '_'.join([sat, t1, t2, r1]))
 
 #------------------------------------------------------------------------
@@ -180,12 +180,12 @@ def main():
             data = np.loadtxt(file_out, skiprows=skiprows, usecols=usecols)
             #np.savetxt(file_out + '.txt', data, fmt='%.6f')
             saveh5(file_out + '.h5', data)
-            os.remove(file_out)
+            #os.remove(file_out)  # only use this on `local` machine
             nxovers += data.shape[0]
             nfiles += 1
             print 'number of crossovers:', data.shape[0]
         except:
-            os.remove(file_out)
+            #os.remove(file_out)  # only use this on `local` machine
             file_out = None
             print 'no crossovers found!'
             #raise  # shows the error
