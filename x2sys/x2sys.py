@@ -70,25 +70,28 @@ parser.add_argument('-i', dest='init', default=False, action='store_const',
 
 args = parser.parse_args()
 
-if not args.init and not args.files:
-    raise IOError("x2sys.py: no input files")
-
-if not args.init and args.reffile is None and len(args.files) < 2:
-    raise IOError("x2sys.py: w/o `-r` option input files must be > 1")
-
 file_ref = args.reffile
 files_in = args.files
 skiprows = args.skiprows
 usecols = args.cols
 ascii = args.ascii
+init = args.init
 
-if args.reffile is None:
+if not init and not files_in:
+    raise IOError("x2sys.py: no input files")
+
+if not init and file_ref is None and len(files_in) < 2:
+    raise IOError("x2sys.py: without `-r` option input files must be > 1")
+
+if file_ref is None:
     file_ref = files_in[0]
+    files_in.remove(file_ref) 
 
 # remove reffile from the input file list
-# to avoid crossing reffile w/itself
+# to avoid crossing reffile w/itself.
+# use `internal crossovers` for this purpose
 if file_ref in files_in: 
-    #files_in.remove(file_ref) 
+    files_in.remove(file_ref) 
     print 'attempting to cross reference file with it self!!!'
 
 
