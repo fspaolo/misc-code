@@ -46,7 +46,7 @@ def bindata(x, y, z, xi, yi, ppbin=False, method='median'):
     2010-11-06 Fernando Paolo, Initial version 
     """
     if x.ndim != y.ndim != z.ndim != 1 or x.shape[0] != y.shape[0] != z.shape[0]:
-        raise TypeError('inputs x,y,z must all be 1D arrays of the same length')
+        raise TypeError('inputs x,y,z must be all 1D arrays of the same length')
 
     if method == 'median': 
         median = True
@@ -68,7 +68,7 @@ def bindata(x, y, z, xi, yi, ppbin=False, method='median'):
     # bin the data
     for row in xrange(nrow):
         for col in xrange(ncol):
-            xc = xi[col]          # xc,yc = center of the bin
+            xc = xi[col]          # (xc,yc) = center of the bin
             yc = yi[row]
             ind, = np.where((xc-hx <= x) & (x < xc+hx) & \
                             (yc-hy <= y) & (y < yc+hy))

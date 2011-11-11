@@ -177,7 +177,7 @@ def main():
                 np.savetxt(fname + '_asc.txt', data[i_asc,:], fmt='%f')
                 np.savetxt(fname + '_des.txt', data[i_des,:], fmt='%f')
             else:
-                filters = tb.Filters(complib='blosc', complevel=5)
+                filters = tb.Filters(complib='blosc', complevel=9)
                 atom = tb.Atom.from_dtype(data.dtype)
      
                 shape = data[i_asc,:].shape
