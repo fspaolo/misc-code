@@ -202,7 +202,7 @@ def main():
                 data = np.column_stack((data, flag))  # add last colum with flags
                 np.savetxt(fname + '_sep.txt', data, fmt='%f')
             else:
-                filters = tb.Filters(complib='blosc', complevel=5)
+                filters = tb.Filters(complib='blosc', complevel=9)
                 atom = tb.Atom.from_dtype(data.dtype)
      
                 shape = (data.shape[0], data.shape[1]+1)
