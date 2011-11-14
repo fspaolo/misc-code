@@ -205,7 +205,7 @@ def main():
                 filters = tb.Filters(complib='blosc', complevel=9)
                 atom = tb.Atom.from_dtype(data.dtype)
      
-                shape = (data.shape[0], data.shape[1]+1)
+                shape = (data.shape[0], data.shape[1] + 1)
                 fout = tb.openFile(fname + '_sep.h5', 'w')
                 dout = fout.createCArray(fout.root,'data', atom=atom, shape=shape,
                                          filters=filters)

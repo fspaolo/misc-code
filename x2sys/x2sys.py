@@ -183,15 +183,15 @@ def main():
             data = np.loadtxt(file_out, skiprows=skiprows, usecols=usecols)
             #np.savetxt(file_out + '.txt', data, fmt='%.6f')
             saveh5(file_out + '.h5', data)
-            #os.remove(file_out)  # only use this on `local` machine
             nxovers += data.shape[0]
             nfiles += 1
             print 'number of crossovers:', data.shape[0]
         except:
-            #os.remove(file_out)  # only use this on `local` machine
             file_out = None
             print 'no crossovers found!'
             #raise  # shows the error
+
+        ###os.remove(file_out)  # test this first. File may be still open!!!
 
     print 'done.'
     print 'total crossovers:', nxovers

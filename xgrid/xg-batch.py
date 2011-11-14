@@ -48,7 +48,7 @@ parser.add_argument('-d', dest='depends', nargs=1, #metavar=("'id1 id2 ...'"),
     "-d dir_with_id_files] ")
 parser.add_argument('-e', dest='email', default='', help='email to send '
     'notification of job state')
-parser.add_argument('-0', dest='multitask', default=True, action='store_const', 
+parser.add_argument('-0', dest='multitask', default=False, action='store_const', 
     const=True, help='create one task per input files (multi-task) '
     '[default]')
 parser.add_argument('-1', dest='singletask', default=False, action='store_const', 
@@ -73,12 +73,17 @@ task['single'] = args.singletask
 task['multi'] = args.multitask
 task['combined'] = args.combinedtask
 
-if not batchfile: 
-    batchfile = jobname + '.xml'  # job name plus extension
+if any(task.values()):
+    pass
+else:
+    task['multi'] = True          # default action
 
 if task['combined']:
     from itertools import combinations
     files = combinations(files, 2)
+
+if not batchfile: 
+    batchfile = jobname + '.xml'  # job name plus extension
 
 # define a basic structure for an Xgrid batch file.
 PLIST = {
@@ -98,21 +103,24 @@ def create_tasks(*args):
     """
     cmd, arguments = execute[0], execute[1:]
     tasks = {}
-    # 1. all files -> one task (sequential)
+    # `-1` all files -> one task (sequential)
     if task['single'] and files:             
+        print 'all files in one task (single)'
         tasks.setdefault(`0`, {'command': cmd, 
                                'arguments': arguments + files})
-    # 2. each file -> one task (parallel)
+    # `-0` each file -> one task (parallel)
     elif task['multi'] and files:                            
+        print 'each file in one task (multi)'
         for i, f in enumerate(files):  
             tasks.setdefault(`i`, {'command': cmd, 
                                    'arguments': arguments + [f]})
-    # 3. every two files -> one task (parallel)
+    # `-2` every two files -> one task (parallel)
     elif task['combined'] and files:                            
+        print 'two files in one task (combined)'
         for i, (f1, f2) in enumerate(files):  
             tasks.setdefault(`i`, {'command': cmd, 
                                    'arguments': arguments + [f1, f2]})
-    # 4. no files
+    # no files
     else:                                       
         tasks.setdefault(`0`, {'command': cmd, 
                                'arguments': arguments})
