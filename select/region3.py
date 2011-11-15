@@ -4,7 +4,7 @@ Separate several data files in contiguous geographic sectors.
 
 Given a `range` and `step` size in degrees for *longitude*,
 the program separates several input data files into the respective 
-contiguous circular sectors (in individual files), within specified
+contiguous sectors (in individual files), within specified
 latitude boundaries.
 
 Notes
@@ -113,7 +113,7 @@ class CheckBounds(object):
         sys.exit()
 
 class SubRegion(object):
-    """Defines a geographic subregion with data points.
+    """Define a geographic subregion with data points.
     """
     def __init__(self, lon, lat, fmask, flag, left, right, 
                  bottom, top, dl, dr):

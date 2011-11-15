@@ -92,7 +92,7 @@ if file_ref is None:
 # use `internal crossovers` for this purpose
 if file_ref in files_in: 
     files_in.remove(file_ref) 
-    print 'attempting to cross reference file with it self!!!'
+    print 'removing ref file from the input list!'
 
 
 def readh5(fname, inmemory=False):
@@ -157,7 +157,7 @@ def fname_out_no_ext2(fname1, fname2):
 
 def main():
     # generate data base with given settings (x2sys.ini) 
-    if args.init:
+    if init:
         #os.system('sudo rm -rfv /opt/local/share/gmt/x2sys/ALTIM')
         os.system('sudo x2sys_init %s %s %s %s %s %s %s %s -V' % \
                   (tagname, deffile, extension, overwrite, distcalc, \
@@ -168,6 +168,7 @@ def main():
 
     nfiles = 0
     nxovers = 0
+    file_out = None
     for file_i in files_in:
 
         #file_out = fname_out_no_ext(file_ref, file_i)
@@ -191,12 +192,14 @@ def main():
             print 'no crossovers found!'
             #raise  # shows the error
 
-        ###os.remove(file_out)  # test this first. File may be still open!!!
+        #os.remove(file_out)  # test this first. File may be still open!!!
 
     print 'done.'
     print 'total crossovers:', nxovers
     print 'crossover files created:', nfiles
-    print 'last output file (.h5):', file_out
+    if file_out is not None:
+        print 'last output file:', file_out + '.h5'
+    print '\n'
 
 if __name__ == '__main__':
     main()
