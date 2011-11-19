@@ -49,7 +49,6 @@ def get_fname_out(fname, season, nfiles, i):
     path, name = os.path.split(fname)
     sat = name.split('_')[0]
     date = re.findall('\d\d\d\d\d\d+', name)[-1][:6] # first file
-    print i, nfiles
     if i == nfiles-1:
         date += '%02d' % season[0]
     elif i == nfiles-2:
@@ -77,7 +76,6 @@ for i, fname in enumerate(files):
     if month not in season:
         season = get_season(month)
         fname_out = get_fname_out(fname, season, nfiles, i)
-        print fname_out
         try:
             fout.close()
         except:
@@ -90,7 +88,6 @@ for i, fname in enumerate(files):
                                  shape=shape, filters=filters)
     dout.append(data[:])
     fin.close()
-    print fname
 
 try:
     fout.close()
