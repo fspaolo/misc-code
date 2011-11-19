@@ -113,35 +113,37 @@ def utc85_to_datetime(utc85):
 
 
 def what_season(month):
-    """Given a month finds the 3-month block of the season.
+    """Given a month finds the 3-month block of respective season.
     """
-    season1 = [12, 1, 2]     # Dec--Feb -> summer SH
-    season2 = [3, 4, 5]      # Mar--May -> Autumn SH 
-    season3 = [6, 7, 8]      # Jun--Aug -> winter SH
-    season4 = [9, 10, 11]    # Sep--Nov -> Spring SH
+    MAM = [3, 4, 5]      # Mar/Apr/May -> Fall SH 
+    JJA = [6, 7, 8]      # Jun/Jul/Aug -> winter SH
+    SON = [9, 10, 11]    # Sep/Oct/Nov -> Spring SH
+    DJF = [12, 1, 2]     # Dec/Jan/Feb -> summer SH
 
-    if month in season1:
-        return season1
-    elif month in season2:
-        return season2
-    elif month in season3:
-        return season3
-    elif month in season4:
-        return season4
+    if month in MAM:
+        return MAM
+    elif month in JJA:
+        return JJA
+    elif month in SON:
+        return SON
+    elif month in DJF:
+        return DJF
     else:
         print 'not a valid month from 1 to 12!'
         return None, None, None    # none existent range
 
 
-def print_date(utc85, N):
+def print_date(Utc85, N):
     """For testing the date output.
     """
-    datetimes = utc85_to_datetime(utc85.utc85[:N])
-    for j, k in zip(utc85.date[:N], datetimes):
-        print 'datetime:', j
-        print 'datetime:', k
-        print 'Y M D h m s us:', j.year, j.month, j.day, j.hour, \
-                                 j.minute, j.second, j.microsecond
+    datetimes = utc85_to_datetime(Utc85.utc85[:N])
+    for k, j in zip(datetimes, Utc85.date[:N]):
+        print 'datetime  dt:', k
+        print 'datetime mpl:', j
+        print 'Y M D h m s us  (dt):', k.year, k.month, k.day, k.hour, \
+                                       k.minute, k.second, k.microsecond
+        print 'Y M D h m s us (mpl):', j.year, j.month, j.day, j.hour, \
+                                       j.minute, j.second, j.microsecond
         print '\n'
 
 
@@ -169,6 +171,7 @@ def main():
         if test:
             print 'file:', f
             print_date(utc85, 10)
+            fin.close()
             continue
 
         ### convert utc85 column to epochs

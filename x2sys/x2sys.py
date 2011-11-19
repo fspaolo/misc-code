@@ -153,6 +153,15 @@ def fname_out_no_ext2(fname1, fname2):
     t2 = re.search('\d\d\d\d\d\d', fname2).group()
     return os.path.join(path2, '_'.join([sat, t1, t2, r1]))
 
+def fname_out_no_ext3(fname1, fname2):
+    """The name of output crossover file: formatted.
+    """
+    path2 = os.path.split(fname2)[0]
+    fname1, _ = os.path.splitext(os.path.basename(fname1))
+    sat, t1 = fname1.split('_')[:2]
+    t2 = re.search('\d\d\d\d\d\d', fname2).group()
+    return os.path.join(path2, '_'.join([sat, t1, t2]))
+
 #------------------------------------------------------------------------
 
 def main():
@@ -172,7 +181,8 @@ def main():
     for file_i in files_in:
 
         #file_out = fname_out_no_ext(file_ref, file_i)
-        file_out = fname_out_no_ext2(file_ref, file_i)
+        #file_out = fname_out_no_ext2(file_ref, file_i)
+        file_out = fname_out_no_ext3(file_ref, file_i)
 
         print 'x2sys_cross: processing', file_ref, '-', file_i, '...'
         os.system('/opt/local/bin/x2sys_cross %s %s -T%s %s %s %s > %s' % \

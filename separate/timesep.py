@@ -202,12 +202,16 @@ def main():
             else:                               # no dir
                 if month is not None:
                     fname += ('_' + mname[EPOCH] + ext)
+                    #fname += (mname[EPOCH] + ext)
                 elif window is not None:
                     fname += ('_' + mname[M1] + mname[M2] + ext)
+                    #fname += (mname[M1] + mname[M2] + ext)
                 elif season is not None:
                     fname += ('_' + mname[M1] + mname[M3] + ext)
+                    #fname += (mname[M1] + mname[M3] + ext)
                 else:
                     fname += ('_' + str(EPOCH) + ext)
+                    #fname += (str(EPOCH) + ext)
                 outfile = os.path.join(path, fname)
 
             ### save data
