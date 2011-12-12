@@ -27,7 +27,6 @@ def get_season(month):
     JJA = [6, 7, 8]      # Jun/Jul/Aug -> winter SH
     SON = [9, 10, 11]    # Sep/Oct/Nov -> Spring SH
     DJF = [12, 1, 2]     # Dec/Jan/Feb -> summer SH
-
     if month in MAM:
         return MAM
     elif month in JJA:

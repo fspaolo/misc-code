@@ -150,7 +150,7 @@ def fname_out_no_ext2(fname1, fname2):
     path2 = os.path.split(fname2)[0]
     fname1, _ = os.path.splitext(os.path.basename(fname1))
     sat, t1, r1 = fname1.split('_')[:3]
-    t2 = re.search('\d\d\d\d\d\d', fname2).group()
+    t2 = re.search('\d\d\d\d\d\d+', fname2).group()
     return os.path.join(path2, '_'.join([sat, t1, t2, r1]))
 
 def fname_out_no_ext3(fname1, fname2):
@@ -159,7 +159,7 @@ def fname_out_no_ext3(fname1, fname2):
     path2 = os.path.split(fname2)[0]
     fname1, _ = os.path.splitext(os.path.basename(fname1))
     sat, t1 = fname1.split('_')[:2]
-    t2 = re.search('\d\d\d\d\d\d', fname2).group()
+    t2 = re.search('\d\d\d\d\d\d+', fname2).group()
     return os.path.join(path2, '_'.join([sat, t1, t2]))
 
 #------------------------------------------------------------------------

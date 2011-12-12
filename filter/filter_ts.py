@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 doc = """\
- Filter a 1-D time series in time or frequency domain.
+Filter a 1-D time series in time or frequency domain.
 """ 
 # Fernando Paolo <fpaolo@ucsd.edu>
 # August 15, 2011
@@ -148,7 +148,8 @@ class FilterData(object):
     #-------------------------------------------------------------------
 
     def time_filt(self, x, window_len=13, window_type='hanning'):
-        """smooth the data using a window with requested size.
+        """
+        smooth the data using a window with requested size.
         
         This method is based on the convolution of a scaled window 
         with the signal. The signal is prepared by introducing reflected 
@@ -162,7 +163,7 @@ class FilterData(object):
         ----------
         x : the input signal.
         window_len : the dimension of the smoothing window.
-            Should be an odd integer.
+            Should be an odd integer, e.g. period to filter plus one (T + 1).
         window : the type of window from `flat`, `hanning`, `hamming`, 
             `bartlett`, `blackman`. flat window will produce a moving 
             average smoothing.
@@ -173,9 +174,9 @@ class FilterData(object):
             
         Example
         -------
-        t = linspace(-2,2,0.1)
-        x = sin(t)+randn(len(t))*0.1
-        y = smooth(x)
+        >>> t = linspace(-2,2,0.1)
+        >>> x = sin(t)+randn(len(t))*0.1
+        >>> y = smooth(x)
         
         See also
         --------
@@ -199,7 +200,7 @@ class FilterData(object):
             return x
 
         if not window_type in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
-            raise ValueError, 'Window is on of `flat`, `hanning`, `hamming`, \
+            raise ValueError, 'Window is one of `flat`, `hanning`, `hamming`, \
                 `bartlett`, `blackman`'
         
         s = np.r_[x[window_len-1:0:-1], x, x[-1:-window_len:-1]]
