@@ -31,8 +31,6 @@ from util import *
 ABSVAL = 10  # m, to edit abs(dh)
 MAX_SIZE_DATA = 512  # MB, to load data in memory
 
-ext = '_1.0x0.3.h5'
-
 #---------------------------------------------------------------------
 
 # parse command line arguments
