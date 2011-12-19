@@ -1,8 +1,8 @@
 """
- Bin irregularly spaced (2D) data on rectangular cells.
- 
- Fernando Paolo <fpaolo@ucsd.edu>
- November 06, 2010
+Bin irregularly spaced (2D) data on rectangular cells.
+
+Fernando Paolo <fpaolo@ucsd.edu>
+November 06, 2010
 """
 
 import numpy as np
