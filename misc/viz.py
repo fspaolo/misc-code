@@ -3,7 +3,7 @@ Module with some utility functions for visualization/plotting.
 
 Notes
 -----
-Some of the functionalities are taken/modified from:
+Some of the functionalities were taken/modified from:
 http://earth.usc.edu/~gely/coseis/www/index.html
 
 """
@@ -13,6 +13,7 @@ http://earth.usc.edu/~gely/coseis/www/index.html
 import os
 import numpy as np
 import subprocess, cStringIO
+import matplotlib.pyplot as plt
 
 #---------------------------------------------------------------------
 # Visualization utilities
@@ -82,7 +83,8 @@ def pdf_merge(layers):
     return(out)
 
 
-def colormap(cmap, colorexp=1.0, nmod=0, modlim=0.5, upsample=True, invert=False):
+def create_colormap(cmap, colorexp=1.0, nmod=0, modlim=0.5, upsample=True, 
+              invert=False):
     """
     Color map creator.
 
@@ -135,9 +137,9 @@ def colormap(cmap, colorexp=1.0, nmod=0, modlim=0.5, upsample=True, invert=False
 
 def cpt(*args, **kwargs):
     """
-    GMT style colormap. See colormap for details.
+    GMT style colormap. See `create_colormap` for details.
     """
-    v, r, g, b, a = colormap(*args, **kwargs)
+    v, r, g, b, a = create_colormap(*args, **kwargs)
     cmap = ''
     fmt = '%-10r %3.0f %3.0f %3.0f     %-10r %3.0f %3.0f %3.0f\n'
     for i in range(len(v) - 1):
@@ -254,10 +256,10 @@ def text(ax, x, y, s, edgecolor=None, edgealpha=0.1, edgewidth=0.75,
 
 def colormap(*args, **kwargs):
     """
-    Matplotlib colormap. See colormap for details.
+    Matplotlib enhanced colormap. See `create_colormap` for details.
     """
     from matplotlib.colors import LinearSegmentedColormap
-    v, r, g, b, a = colormap(*args, **kwargs)
+    v, r, g, b, a = create_colormap(*args, **kwargs)
     n = 2001
     cmap = { 'red':np.c_[v, r, r],
            'green':np.c_[v, g, g],
@@ -266,12 +268,14 @@ def colormap(*args, **kwargs):
     return cmap
 
 
-def colorbar(fig, cmap, clim, title=None, rect=None, ticks=None, ticklabels=None, boxcolor='k', boxalpha=1.0, boxwidth=0.2, **kwargs):
+def colorbar(fig, cmap, clim, title=None, rect=None, ticks=None, 
+             ticklabels=None, boxcolor='k', boxalpha=1.0, 
+             boxwidth=0.2, **kwargs):
     """
     Matplotlib enhanced colorbar.
     """
     if rect is None:
-        rect = 0.25, 0.08, 0.5, 0.02
+        rect = 0.25, 0.04, 0.5, 0.02
     axis = clim[0], clim[1], 0, 1
     ax = fig.add_axes(rect)
     x = axis[0], axis[0], axis[1], axis[1], axis[0]
@@ -390,7 +394,6 @@ def digitize(img, xlim=(-1, 1), ylim=(-1, 1), color='r'):
     """
     Digitize points on an image and rectify to a rectangular coordinate system.
     """
-    import matplotlib.pyplot as plt
     import coord
     fig = plt.gcf()
     fig.clf()
@@ -410,7 +413,6 @@ def digitize(img, xlim=(-1, 1), ylim=(-1, 1), color='r'):
             yy += [y]
             ax.plot([x], [y], '+' + color)
             plt.draw()
-
     xx = xx[:2], xx[2:]
     yy = yy[:2], yy[2:]
     print("""
@@ -445,7 +447,6 @@ def contour(*args, **kwargs):
     """
     Extract contour polygons using matplotlib.
     """
-    import matplotlib.pyplot as plt
     concat = True
     pp = []
     fig = plt.figure()
@@ -468,5 +469,82 @@ def contour(*args, **kwargs):
             pp += [p]
     plt.close(fig)
     return pp
+
+
+def add_inner_title(ax, title, loc, size=None, **kwargs):
+    """
+    Add title inside the figure. Same locations as `label`.
+    """
+    from matplotlib.offsetbox import AnchoredText
+    from matplotlib.patheffects import withStroke
+    if size is None:
+        size = dict(size=plt.rcParams['legend.fontsize'])
+    at = AnchoredText(title, loc=loc, prop=size, pad=0., 
+        borderpad=0.5, frameon=False, **kwargs)
+    ax.add_artist(at)
+    at.txt._text.set_path_effects([withStroke(foreground="w", linewidth=3)])
+    at.patch.set_alpha(0.5)
+    return at
+
+
+def hinton(W, max_weight=None, ax=None):
+    """
+    Draws a Hinton diagram for visualizing a weight matrix.
+    """
+    from matplotlib.patches import Rectangle
+    from matplotlib.ticker import NullLocator
+    W = W.T
+    if not ax:
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+    if not max_weight:
+        max_weight = 2**np.ceil(np.log(np.abs(W).max())/np.log(2))
+    ax.patch.set_facecolor('gray')
+    ax.set_aspect('equal', 'box')
+    ax.xaxis.set_major_locator(NullLocator())
+    ax.yaxis.set_major_locator(NullLocator())
+    for (x,y),w in np.ndenumerate(W):
+        if w > 0: color = 'white'
+        else:     color = 'black'
+        size = np.sqrt(np.abs(w))
+        rect = Rectangle([x - size / 2, y - size / 2], size, size,
+            facecolor=color, edgecolor=color)
+        ax.add_patch(rect)
+    ax.autoscale_view()
+    # Reverse the yaxis limits
+    ax.set_ylim(*ax.get_ylim()[::-1])
+
+
+def plot_matrix(mat, title='', loc=1, plot=None, **kw):
+    """
+    Plot the representation of a matrix: matshow, hinton or spy.
+
+    plot : can be 'matshow', 'hinton' or 'spy'. If `None` (default) 
+    plots matshow and hinton diagrams.
+    """
+    from matplotlib.ticker import NullLocator
+    if plot is None:
+        fig = plt.figure(figsize=(8,4))
+        ax1 = fig.add_subplot(121)
+        ax2 = fig.add_subplot(122)
+        ax1.matshow(mat)
+        hinton(mat, ax=ax2)
+        t = add_inner_title(ax1, title, loc=loc)
+        t = add_inner_title(ax2, title, loc=loc)
+    else:
+        fig = plt.figure(figsize=(4,4))
+        ax = fig.add_subplot((111))
+        if plot == 'matshow':
+            ax.matshow(mat)
+            ax.xaxis.set_major_locator(NullLocator())
+            ax.yaxis.set_major_locator(NullLocator())
+        elif plot == 'hinton':
+            hinton(mat, ax=ax)
+        elif plot == 'spy':
+            ax.spy(mat, precision=0.1, markersize=6, **kw)
+        else:
+            raise ValueError('wrong argument `plot=%s`' % plot)
+        t = add_inner_title(ax, title, loc=loc)
+    return fig
 
 

@@ -5,7 +5,7 @@ every bin on a grid --> output: several grids.
 
 Example
 -------
-$ python thisprog.py /path/to/data/ers1_*_tide.h5
+$ python xover2grid.py ~/data/fris/xover/seasonal/ers1_199*_tide.h5
 
 """
 # Fernando Paolo <fpaolo@ucsd.edu>
@@ -60,7 +60,7 @@ def main(args):
     for pos, fname in enumerate(files):
 
         f = tb.openFile(fname)
-        check_if_can_load(f.root.data, MAX_SIZE_DATA)
+        check_if_can_be_loaded(f.root.data, MAX_SIZE_DATA)
         data = f.root.data.read()      # in-memory --> faster!
 
         # 1. FILTER DATA FIRST
@@ -182,34 +182,39 @@ def main(args):
         if isfirst:
             isfirst = False
             fname_out = get_fname_out(files, sufix='dh_grids.h5')
-            title = 'FRIS Grids'
+            title = 'FRIS Elevation Change Grids'
             filters = tb.Filters(complib='blosc', complevel=9)
             atom = tb.Atom.from_dtype(dh_mean.dtype)
             ni, nj = dh_mean.shape
             db = tb.openFile(fname_out, 'w')
 
             g = db.createGroup('/', 'fris')
-            t = db.createTable(g, 'ts', TimeSeriesGrid, title, filters)
-            a1 = db.createEArray(g, 'dh_mean', atom, (ni, nj, 0), '', filters)
-            a2 = db.createEArray(g, 'dh_error', atom, (ni, nj, 0), '', filters)
-            a3 = db.createEArray(g, 'dg_mean', atom, (ni, nj, 0), '', filters)
-            a4 = db.createEArray(g, 'dg_error', atom, (ni, nj, 0), '', filters)
-            a5 = db.createCArray(g, 'x_edges', atom, (nj+1,), '', filters)
-            a6 = db.createCArray(g, 'y_edges', atom, (ni+1,), '', filters)
-            a7 = db.createCArray(g, 'lon', atom, (nj,), '', filters)
-            a8 = db.createCArray(g, 'lat', atom, (ni,), '', filters)
+            t1 = db.createTable(g, 'ts', TimeSeriesGrid, title, filters)
+            e1 = db.createEArray(g, 'dh_mean', atom, (ni, nj, 0), '', filters)
+            e2 = db.createEArray(g, 'dh_error', atom, (ni, nj, 0), '', filters)
+            e3 = db.createEArray(g, 'dg_mean', atom, (ni, nj, 0), '', filters)
+            e4 = db.createEArray(g, 'dg_error', atom, (ni, nj, 0), '', filters)
+            e5 = db.createEArray(g, 'n_ad', atom, (ni, nj, 0), '', filters)
+            e6 = db.createEArray(g, 'n_da', atom, (ni, nj, 0), '', filters)
 
-            a5[:] = x_edges
-            a6[:] = y_edges
-            a7[:] = lon
-            a8[:] = lat
+            c1 = db.createCArray(g, 'x_edges', atom, (nj+1,), '', filters)
+            c2 = db.createCArray(g, 'y_edges', atom, (ni+1,), '', filters)
+            c3 = db.createCArray(g, 'lon', atom, (nj,), '', filters)
+            c4 = db.createCArray(g, 'lat', atom, (ni,), '', filters)
 
-        t.append([(sat_name, ref_time, year, month)])
-        a1.append(dh_mean.reshape(ni, nj, 1))
-        a2.append(dh_error.reshape(ni, nj, 1))
-        a3.append(dg_mean.reshape(ni, nj, 1))
-        a4.append(dg_error.reshape(ni, nj, 1))
-        t.flush()
+            c1[:] = x_edges
+            c2[:] = y_edges
+            c3[:] = lon
+            c4[:] = lat
+
+        t1.append([(sat_name, ref_time, year, month)])
+        e1.append(dh_mean.reshape(ni, nj, 1))
+        e2.append(dh_error.reshape(ni, nj, 1))
+        e3.append(dg_mean.reshape(ni, nj, 1))
+        e4.append(dg_error.reshape(ni, nj, 1))
+        e5.append(n_ad.reshape(ni, nj, 1))
+        e6.append(n_da.reshape(ni, nj, 1))
+        t1.flush()
 
         f.close()
 

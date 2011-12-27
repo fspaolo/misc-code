@@ -54,7 +54,7 @@ def main(args):
     for pos, fname in enumerate(files):
 
         f = tb.openFile(fname)
-        check_if_can_load(f.root.data, MAX_SIZE_DATA)
+        check_if_can_be_loaded(f.root.data, MAX_SIZE_DATA)
         data = f.root.data.read()      # in-memory --> faster!
 
         # 1. FILTER DATA FIRST

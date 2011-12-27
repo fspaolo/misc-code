@@ -1,8 +1,8 @@
-#!/usr/bin/env python
-
 """
-Module containing functions and classes to be used in converting
-crossover files to time series.
+Module containing functions and classes used by:
+
+xover2grid.py
+xover2box.py
 
 """
 # Fernando Paolo <fpaolo@ucsd.edu>
@@ -16,35 +16,6 @@ import scipy as sp
 import tables as tb
 import datetime as dt
 import matplotlib.pyplot as plt
-
-
-class TimeSeries(tb.IsDescription):
-    sat_name = tb.StringCol(10, pos=1)
-    ref_time = tb.StringCol(10, pos=2)
-    year = tb.Int32Col(pos=3)
-    month = tb.Int32Col(pos=4)
-    dh_mean = tb.Float64Col(pos=5)
-    dh_error = tb.Float64Col(pos=6)
-    dg_mean = tb.Float64Col(pos=7)
-    dg_error = tb.Float64Col(pos=8)
-    n_ad = tb.Int32Col(pos=9)
-    n_da = tb.Int32Col(pos=10)
-
-
-class TimeSeriesGrid(tb.IsDescription):
-    sat_name = tb.StringCol(10, pos=1)
-    ref_time = tb.StringCol(10, pos=2)
-    year = tb.Int32Col(pos=3)
-    month = tb.Int32Col(pos=4)
-    #niter = tb.Int16Col(pos=5)
-    '''
-    dh_mean = tb.Float64Col(pos=5)
-    dh_error = tb.Float64Col(pos=6)
-    dg_mean = tb.Float64Col(pos=7)
-    dg_error = tb.Float64Col(pos=8)
-    n_ad = tb.Int32Col(pos=9)
-    n_da = tb.Int32Col(pos=10)
-    '''
 
 
 def compute_dh_ad_da(h1, h2, ftrack1, ftrack2, return_index=False):
@@ -238,7 +209,7 @@ def need_to_save_now(pos, fname, files):
     """
     Find when a TS is formed and need to be saved. 
 
-    A TS is formed when:
+    A TS is formed when (one of the followings):
     1) current file is the last one
     2) current sat_name is different from next sat_name
     3) current ref_time is different from next ref_time
@@ -320,19 +291,23 @@ def plot_grids(x, y, g1, g2, g3, g4):
     `pcolor` cannot have NaN, use `masked array` instead.
     `pcolor` does not preserve the lon,lat aspect ratio like `imshow`.
     """
+    #sys.path.append('/Users/fpaolo/code/misc')
+    #import viz
+    #cmap = viz.colormap('rgb')
     g1 = np.ma.masked_invalid(g1)
     g2 = np.ma.masked_invalid(g2)
     g3 = np.ma.masked_invalid(g3)
     g4 = np.ma.masked_invalid(g4)
     xx, yy = np.meshgrid(x, y)
-    plt.figure()
+    fig = plt.figure()
     plt.subplot(211)
     plt.pcolor(xx, yy, g1)
     plt.colorbar()
     plt.subplot(212)
     plt.pcolor(xx, yy, g2)
     plt.colorbar()
-    plt.figure()
+    #viz.colorbar(fig, cmap, (-2,2))
+    fig = plt.figure()
     plt.subplot(211)
     plt.pcolor(xx, yy, g3)
     plt.colorbar()
