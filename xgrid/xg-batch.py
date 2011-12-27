@@ -19,7 +19,7 @@ $ python xg-batch.py -s -j jobname -c "/path/to/prog -a arg" /path/to/files/*.ex
 
 See Also
 --------
-Xgrid: ``http://www.apple.com/server/macosx/technology/xgrid.html``
+Xgrid: http://www.apple.com/science/hardware/gridcomputing.html
 
 """
 # Fernando <fpaolo@ucsd.edu>
