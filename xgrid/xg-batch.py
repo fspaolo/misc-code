@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Generate and submit batch files for Apple Xgrid computing. 
+Generate and submit batch files for Apple's Xgrid computing. 
 
 This script is a wrapper around the `xgrid` command line tool. It 
 facilitates the construction and submission of batch files for 
@@ -10,12 +10,12 @@ Examples
 --------
 To see the available options::
 
-$ python batch.py -h
+$ python xg-batch.py -h
 
 To generate and submit a batch file with jobs that call a program
 `prog` with command line argument `arg` on several files::
 
-$ python batch.py -s -j jobname -c "/path/to/prog -a arg" /path/to/files/*.ext 
+$ python xg-batch.py -s -j jobname -c "/path/to/prog -a arg" /path/to/files/*.ext 
 
 See Also
 --------
