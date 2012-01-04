@@ -19,6 +19,12 @@ Or by passing a dir containing those files::
 
 $ python xg-result.py /path/to/dir
 
+See Also
+--------
+Xgrid: http://www.apple.com/science/hardware/gridcomputing.html
+Tutorials: http://macresearch.org/the_xgrid_tutorials
+Wiki/Docs/FAQ/etc: http://tengrid.com
+
 """
 # Fernando <fpaolo@ucsd.edu>
 # April 21, 2011

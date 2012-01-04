@@ -20,6 +20,8 @@ $ python xg-batch.py -s -j jobname -c "/path/to/prog -a arg" /path/to/files/*.ex
 See Also
 --------
 Xgrid: http://www.apple.com/science/hardware/gridcomputing.html
+Tutorials: http://macresearch.org/the_xgrid_tutorials
+Wiki/Docs/FAQ/etc: http://tengrid.com
 
 """
 # Fernando <fpaolo@ucsd.edu>
