@@ -50,6 +50,8 @@ def main(args):
 
     files.sort(key=lambda s: re.findall('\d\d\d\d\d\d+', s))
 
+    print 'processing files ...'
+
     isfirst = True
     for pos, fname in enumerate(files):
 

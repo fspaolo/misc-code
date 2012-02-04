@@ -1,7 +1,14 @@
 #!/usr/bin/env python
 """
-Take crossover files as input and construct dh time series for
-every bin on a grid --> output: several grids.
+Take crossover files as input and construct grids of `average dh, dAGC, 
+errors, #obs` at every grid cell: 
+
+single_crossover_file    --> single_grid
+multiple_crossover_files --> multiple_grids
+
+Note
+----
+Process one satellite at a time and merge the files later on.
 
 Example
 -------
@@ -24,14 +31,13 @@ from funcs import *
 sys.path.append('/Users/fpaolo/code/misc')
 from util import *
 
-#---------------------------------------------------------------------
 # global variables
-#---------------------------------------------------------------------
+#-------------------------------------------------------------------------
 
-ABSVAL = 10  # m, to edit abs(dh)
-MAX_SIZE_DATA = 512  # MB, to load data in memory
+ABSVAL = 10  # (m) to edit abs(dh)
+MAX_SIZE_DATA = 512  # (MB) to load data in memory
 
-#---------------------------------------------------------------------
+#-------------------------------------------------------------------------
 
 # parse command line arguments
 parser = ap.ArgumentParser()
@@ -42,11 +48,16 @@ parser.add_argument('-r', dest='region', nargs=4, type=float,
     help='coordinates of grid domain: left right bottom top')
 parser.add_argument('-d', dest='delta', nargs=2, type=float, 
     metavar=('dx', 'dy'), default=(1.2, 0.4),
-    help='size of grid cells: dx dy (deg) [default: 1 1/3]')
+    help='size of grid cells: dx dy (deg) [default: 1.2 x 0.4]')
+parser.add_argument('-o', dest='fname_out', default=None,
+    help='output file name [default: /input/path/sat_tmin_tmax_dh_grids.h5]')
 
 args = parser.parse_args()
 
 def main(args):
+
+    # input args
+    #---------------------------------------------------------------------
 
     files = args.files
     x_range = (args.region[0], args.region[1])
@@ -56,6 +67,14 @@ def main(args):
 
     files.sort(key=lambda s: re.findall('\d\d\d\d\d\d+', s))
 
+    if args.fname_out:
+        fname_out = args.fname_out
+    else:
+        fname_out = get_fname_out(files, sufix='dh_grids.h5')
+
+    # generate *one* set of grids *per file*
+    #---------------------------------------------------------------------
+
     isfirst = True
     for pos, fname in enumerate(files):
 
@@ -63,7 +82,10 @@ def main(args):
         check_if_can_be_loaded(f.root.data, MAX_SIZE_DATA)
         data = f.root.data.read()      # in-memory --> faster!
 
-        # 1. FILTER DATA FIRST
+        # get sat/time info for every grid
+        sat_name, ref_time, year, month = get_time_from_fname(fname)  
+
+        # (1) FILTER DATA FIRST
 
         fmode1 = data[:,10]
         fmode2 = data[:,11]
@@ -73,12 +95,13 @@ def main(args):
         '''
         condition = ((fmode1 == fmode2) & (fbord1 == 0) & (fbord2 == 0)) 
         '''
-        condition = ((fmode1 == 1) & (fmode2 == 1) & \
-                     (fbord1 == 0) & (fbord2 == 0))    # ice mode
-        '''
-        condition = ((fmode1 == 0) & (fmode2 == 0) & \
-                     (fbord1 == 0) & (fbord2 == 0))    # fine mode
-        '''
+        if sat_name == 'ers1' or sat_name == 'ers2':
+            condition = ((fmode1 == 1) & (fmode2 == 1) & \
+                         (fbord1 == 0) & (fbord2 == 0))    # ice mode
+        elif sat_name == 'envisat':
+            condition = ((fmode1 == 0) & (fmode2 == 0) & \
+                         (fbord1 == 0) & (fbord2 == 0))    # fine mode
+
         ind, = np.where(condition)
 
         if len(ind) < 1:    # go to next file
@@ -101,16 +124,16 @@ def main(args):
         d['load1'] = data[:,26]
         d['load2'] = data[:,27]
 
-        # 2. APPLY CORRECTIONS 
+        # (2) APPLY CORRECTIONS 
 
         d = apply_tide_and_load_corr(d)
 
         del data, fmode1, fmode2, fbord1, fbord2
         del d['tide1'], d['tide2'], d['load1'], d['load2']
 
+        # digitize lons and lats
         #-----------------------------------------------------------------
 
-        # digitize lons and lats
         x_edges = np.arange(x_range[0], x_range[-1]+dx, dx)
         y_edges = np.arange(y_range[0], y_range[-1]+dy, dy)
         j_bins = np.digitize(d['lon'], bins=x_edges)
@@ -121,6 +144,8 @@ def main(args):
         lat = (y_edges + hy)[:-1]
 
         # output grids 
+        #-----------------------------------------------------------------
+
         dh_mean = np.empty((ny,nx), 'f8') * np.nan
         dh_error = np.empty_like(dh_mean) * np.nan
         dg_mean = np.empty_like(dh_mean) * np.nan
@@ -128,9 +153,9 @@ def main(args):
         n_ad = np.empty((ny,nx), 'i4')
         n_da = np.empty_like(n_ad)
 
+        # calculations per grid cell
         #-----------------------------------------------------------------
 
-        # calculations per grid cell
         for i in xrange(ny):
             for j in xrange(nx):
                 '''
@@ -142,11 +167,11 @@ def main(args):
                 # single grid cell
                 ind, = np.where((j_bins == j+1) & (i_bins == i+1))
 
+                ### dh time series
+
                 # separate --> asc/des, des/asc 
                 dh_ad, dh_da = compute_dh_ad_da(d['h1'][ind], d['h2'][ind], 
                                d['ftrack1'][ind], d['ftrack2'][ind])
-
-                ### dh TS
 
                 # filter
                 #dh_ad = std_iterative_editing(dh_ad, nsd=3)
@@ -162,7 +187,7 @@ def main(args):
                 n_ad[i,j] = len(dh_ad)
                 n_da[i,j] = len(dh_da)
 
-                ### dAGC TS
+                ### dAGC time series
 
                 dg_ad, dg_da = compute_dh_ad_da(d['g1'][ind], d['g2'][ind], 
                                d['ftrack1'][ind], d['ftrack2'][ind])
@@ -173,23 +198,21 @@ def main(args):
                 dg_mean[i,j] = compute_weighted_mean(dg_ad, dg_da, useall=False) 
                 dg_error[i,j] = compute_weighted_mean_error(dg_ad, dg_da, useall=False) 
 
+        # save the grids
         #-----------------------------------------------------------------
 
-        # get time info for every grid
-        sat_name, ref_time, year, month = get_time_from_fname(fname)  
-
-        # save the grids
         if isfirst:
+            # open or create output file
             isfirst = False
-            fname_out = get_fname_out(files, sufix='dh_grids.h5')
             title = 'FRIS Elevation Change Grids'
             filters = tb.Filters(complib='blosc', complevel=9)
             atom = tb.Atom.from_dtype(dh_mean.dtype)
             ni, nj = dh_mean.shape
-            db = tb.openFile(fname_out, 'w')
+            db = tb.openFile(fname_out, 'w') # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< append `a`?
 
             g = db.createGroup('/', 'fris')
-            t1 = db.createTable(g, 'ts', TimeSeriesGrid, title, filters)
+            t1 = db.createTable(g, 'table', TimeSeriesGrid, title, filters)
+
             e1 = db.createEArray(g, 'dh_mean', atom, (ni, nj, 0), '', filters)
             e2 = db.createEArray(g, 'dh_error', atom, (ni, nj, 0), '', filters)
             e3 = db.createEArray(g, 'dg_mean', atom, (ni, nj, 0), '', filters)
@@ -202,12 +225,14 @@ def main(args):
             c3 = db.createCArray(g, 'lon', atom, (nj,), '', filters)
             c4 = db.createCArray(g, 'lat', atom, (ni,), '', filters)
 
+            # save
             c1[:] = x_edges
             c2[:] = y_edges
             c3[:] = lon
             c4[:] = lat
 
-        t1.append([(sat_name, ref_time, year, month)])
+        # append one set of grids per file
+        t1.append([(sat_name, ref_time, year, month)])  # <<<<<< test row.append() instead!
         e1.append(dh_mean.reshape(ni, nj, 1))
         e2.append(dh_error.reshape(ni, nj, 1))
         e3.append(dg_mean.reshape(ni, nj, 1))

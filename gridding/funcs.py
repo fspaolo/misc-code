@@ -240,12 +240,14 @@ def bin_by_mean(lon, lat, z, bins=10, range=None):
 
 
 def print_info(x_edges, y_edges, lon, lat, dx, dy):
+    print '='*70
     print 'grid domain (edges): l/r/b/t = %.1f/%.1f/%.1f/%.1f deg' \
         % (x_edges[0], x_edges[-1], y_edges[0], y_edges[-1])
     print 'grid domain (cells): l/r/b/t = %.1f/%.1f/%.1f/%.1f deg' \
         % (lon[0], lon[-1], lat[0], lat[-1])
-    print 'grid spacing (cells): dx, dy = %.1f, %.1f deg' % (dx, dy)
-    print 'grid size (elements): nx, ny = %d, %d' % (len(lon), len(lat))
+    print 'grid spacing (cells): dx x dy = %.1f x %.1f deg' % (dx, dy)
+    print 'grid size (elements): nx x ny = %d x %d' % (len(lon), len(lat))
+    print '='*70
 
 
 def plot_ts(table):
@@ -298,6 +300,8 @@ def plot_grids(x, y, g1, g2, g3, g4):
     g2 = np.ma.masked_invalid(g2)
     g3 = np.ma.masked_invalid(g3)
     g4 = np.ma.masked_invalid(g4)
+    x = np.ma.masked_invalid(x)
+    y = np.ma.masked_invalid(y)
     xx, yy = np.meshgrid(x, y)
     fig = plt.figure()
     plt.subplot(211)
