@@ -17,6 +17,9 @@ import tables as tb
 import datetime as dt
 import matplotlib.pyplot as plt
 
+sys.path.append('/Users/fpaolo/code/misc')
+from util import *
+
 
 def compute_dh_ad_da(h1, h2, ftrack1, ftrack2, return_index=False):
     '''
@@ -203,6 +206,31 @@ def get_fname_out(files, fname_out=None, prefix=None, sufix=None):
     else:
         name = fname_out
     return os.path.join(path, name)
+
+
+def create_output_containers(fname_out, atom, (nj,nk)):
+    # open or create output file
+    title = 'FRIS Average Time Series'
+    filters = tb.Filters(complib='blosc', complevel=9)
+    file_out = tb.openFile(fname_out, 'w')
+    
+    dout = {}
+    g = file_out.createGroup('/', 'fris')
+    dout['table'] = file_out.createTable(g, 'table', TimeSeriesGrid, title, filters)
+    
+    dout['dh_mean'] = file_out.createEArray(g, 'dh_mean', atom, (0, nj, nk), '', filters)
+    dout['dh_error'] = file_out.createEArray(g, 'dh_error', atom, (0, nj, nk), '', filters)
+    dout['dg_mean'] = file_out.createEArray(g, 'dg_mean', atom, (0, nj, nk), '', filters)
+    dout['dg_error'] = file_out.createEArray(g, 'dg_error', atom, (0, nj, nk), '', filters)
+    dout['n_ad'] = file_out.createEArray(g, 'n_ad', atom, (0, nj, nk), '', filters)
+    dout['n_da'] = file_out.createEArray(g, 'n_da', atom, (0, nj, nk), '', filters)
+
+    dout['x_edges'] = file_out.createCArray(g, 'x_edges', atom, (nj+1,), '', filters)
+    dout['y_edges'] = file_out.createCArray(g, 'y_edges', atom, (nk+1,), '', filters)
+    dout['lon'] = file_out.createCArray(g, 'lon', atom, (nj,), '', filters)
+    dout['lat'] = file_out.createCArray(g, 'lat', atom, (nk,), '', filters)
+
+    return dout, file_out
 
 
 def need_to_save_now(pos, fname, files):

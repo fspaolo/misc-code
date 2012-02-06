@@ -6,9 +6,10 @@ errors, #obs` at every grid cell:
 single_crossover_file    --> single_grid
 multiple_crossover_files --> multiple_grids
 
-Note
-----
-Process one satellite at a time and merge the files later on.
+Notes
+-----
+* Process one satellite at a time and merge the files later on.
+* indices: i,j,k = t,x,y
 
 Example
 -------
@@ -18,18 +19,9 @@ $ python xover2grid.py ~/data/fris/xover/seasonal/ers1_199*_tide.h5
 # Fernando Paolo <fpaolo@ucsd.edu>
 # December 15, 2011
 
-import os
-import sys
-import re
-import numpy as np
-import tables as tb
 import argparse as ap
-import matplotlib.pyplot as plt
 
 from funcs import *
-
-sys.path.append('/Users/fpaolo/code/misc')
-from util import *
 
 # global variables
 #-------------------------------------------------------------------------
@@ -67,10 +59,8 @@ def main(args):
 
     files.sort(key=lambda s: re.findall('\d\d\d\d\d\d+', s))
 
-    if args.fname_out:
-        fname_out = args.fname_out
-    else:
-        fname_out = get_fname_out(files, sufix='dh_grids.h5')
+    fname_out = args.fname_out
+    fname_out = get_fname_out(files, fname_out=fname_out, sufix='dh_grids.h5')
 
     # generate *one* set of grids *per file*
     #---------------------------------------------------------------------
@@ -78,39 +68,40 @@ def main(args):
     isfirst = True
     for pos, fname in enumerate(files):
 
-        f = tb.openFile(fname)
-        check_if_can_be_loaded(f.root.data, MAX_SIZE_DATA)
-        data = f.root.data.read()      # in-memory --> faster!
+        file_in = tb.openFile(fname)
+        check_if_can_be_loaded(file_in.root.data, MAX_SIZE_DATA)
+        data = file_in.root.data.read()      # in-memory --> faster!
 
         # get sat/time info for every grid
         sat_name, ref_time, year, month = get_time_from_fname(fname)  
 
         # (1) FILTER DATA FIRST
 
-        fmode1 = data[:,10]
-        fmode2 = data[:,11]
-        fbord1 = data[:,18]
-        fbord2 = data[:,19]
+        d = {}
+        d['fmode1'] = data[:,10]
+        d['fmode2'] = data[:,11]
+        d['fbord1'] = data[:,18]
+        d['fbord2'] = data[:,19]
 
         '''
-        condition = ((fmode1 == fmode2) & (fbord1 == 0) & (fbord2 == 0)) 
+        condition = ((d['fmode1'] == d['fmode2']) & \
+                     (d['fbord1'] == 0) & (d['fbord2'] == 0)) 
         '''
         if sat_name == 'ers1' or sat_name == 'ers2':
-            condition = ((fmode1 == 1) & (fmode2 == 1) & \
-                         (fbord1 == 0) & (fbord2 == 0))    # ice mode
-        elif sat_name == 'envisat':
-            condition = ((fmode1 == 0) & (fmode2 == 0) & \
-                         (fbord1 == 0) & (fbord2 == 0))    # fine mode
+            condition = ((d['fmode1'] == 1) & (d['fmode2'] == 1) & \
+                         (d['fbord1'] == 0) & (d['fbord2'] == 0))  # ice mode
+        elif sat_name == 'envisat' or sat_name == 'geosat' or sat_name == 'gfo':
+            condition = ((d['fmode1'] == 0) & (d['fmode2'] == 0) & \
+                         (d['fbord1'] == 0) & (d['fbord2'] == 0))  # fine mode/ocean mode
 
         ind, = np.where(condition)
 
         if len(ind) < 1:    # go to next file
-            f.close()
+            file_in.close()
             continue
 
         data = data[ind,:]
 
-        d = {}
         d['lon'] = data[:,0]
         d['lat'] = data[:,1]
         d['h1'] = data[:,6]
@@ -128,7 +119,7 @@ def main(args):
 
         d = apply_tide_and_load_corr(d)
 
-        del data, fmode1, fmode2, fbord1, fbord2
+        del data, d['fmode1'], d['fmode2'], d['fbord1'], d['fbord2']
         del d['tide1'], d['tide2'], d['load1'], d['load2']
 
         # digitize lons and lats
@@ -137,7 +128,7 @@ def main(args):
         x_edges = np.arange(x_range[0], x_range[-1]+dx, dx)
         y_edges = np.arange(y_range[0], y_range[-1]+dy, dy)
         j_bins = np.digitize(d['lon'], bins=x_edges)
-        i_bins = np.digitize(d['lat'], bins=y_edges)
+        k_bins = np.digitize(d['lat'], bins=y_edges)
         nx, ny = len(x_edges)-1, len(y_edges)-1
         hx, hy = dx/2., dy/2.
         lon = (x_edges + hx)[:-1]
@@ -156,16 +147,16 @@ def main(args):
         # calculations per grid cell
         #-----------------------------------------------------------------
 
-        for i in xrange(ny):
+        for k in xrange(ny):
             for j in xrange(nx):
                 '''
                 ind, = np.where((x_edges[j] <= d['lon']) & \
                                 (d['lon'] < x_edges[j+1]) & \
-                                (y_edges[i] <= d['lat']) & \
-                                (d['lat'] < y_edges[i+1]))
+                                (y_edges[k] <= d['lat']) & \
+                                (d['lat'] < y_edges[k+1]))
                 '''
                 # single grid cell
-                ind, = np.where((j_bins == j+1) & (i_bins == i+1))
+                ind, = np.where((j_bins == j+1) & (k_bins == k+1))
 
                 ### dh time series
 
@@ -180,12 +171,12 @@ def main(args):
                 dh_da = abs_value_editing(dh_da, absval=ABSVAL)
 
                 # mean values
-                #dh_mean[i,j] = compute_ordinary_mean(dh_ad, dh_da, useall=False) 
-                dh_mean[i,j] = compute_weighted_mean(dh_ad, dh_da, useall=False) 
-                dh_error[i,j] = compute_weighted_mean_error(dh_ad, dh_da, useall=False) 
-                #dh_error[i,j] = compute_wingham_error(dh_ad, dh_da, useall=False) 
-                n_ad[i,j] = len(dh_ad)
-                n_da[i,j] = len(dh_da)
+                #dh_mean[k,j] = compute_ordinary_mean(dh_ad, dh_da, useall=False) 
+                dh_mean[k,j] = compute_weighted_mean(dh_ad, dh_da, useall=False) 
+                dh_error[k,j] = compute_weighted_mean_error(dh_ad, dh_da, useall=False) 
+                #dh_error[k,j] = compute_wingham_error(dh_ad, dh_da, useall=False) 
+                n_ad[k,j] = len(dh_ad)
+                n_da[k,j] = len(dh_da)
 
                 ### dAGC time series
 
@@ -195,8 +186,8 @@ def main(args):
                 #dg_ad = std_iterative_editing(dg_ad, nsd=3)
                 #dg_da = std_iterative_editing(dg_da, nsd=3)
 
-                dg_mean[i,j] = compute_weighted_mean(dg_ad, dg_da, useall=False) 
-                dg_error[i,j] = compute_weighted_mean_error(dg_ad, dg_da, useall=False) 
+                dg_mean[k,j] = compute_weighted_mean(dg_ad, dg_da, useall=False) 
+                dg_error[k,j] = compute_weighted_mean_error(dg_ad, dg_da, useall=False) 
 
         # save the grids
         #-----------------------------------------------------------------
@@ -204,47 +195,30 @@ def main(args):
         if isfirst:
             # open or create output file
             isfirst = False
-            title = 'FRIS Elevation Change Grids'
-            filters = tb.Filters(complib='blosc', complevel=9)
             atom = tb.Atom.from_dtype(dh_mean.dtype)
-            ni, nj = dh_mean.shape
-            db = tb.openFile(fname_out, 'w') # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< append `a`?
+            nk, nj = dh_mean.shape    # ny,nx
+            dout, file_out = create_output_containers(fname_out, atom, (nj,nk))
 
-            g = db.createGroup('/', 'fris')
-            t1 = db.createTable(g, 'table', TimeSeriesGrid, title, filters)
-
-            e1 = db.createEArray(g, 'dh_mean', atom, (ni, nj, 0), '', filters)
-            e2 = db.createEArray(g, 'dh_error', atom, (ni, nj, 0), '', filters)
-            e3 = db.createEArray(g, 'dg_mean', atom, (ni, nj, 0), '', filters)
-            e4 = db.createEArray(g, 'dg_error', atom, (ni, nj, 0), '', filters)
-            e5 = db.createEArray(g, 'n_ad', atom, (ni, nj, 0), '', filters)
-            e6 = db.createEArray(g, 'n_da', atom, (ni, nj, 0), '', filters)
-
-            c1 = db.createCArray(g, 'x_edges', atom, (nj+1,), '', filters)
-            c2 = db.createCArray(g, 'y_edges', atom, (ni+1,), '', filters)
-            c3 = db.createCArray(g, 'lon', atom, (nj,), '', filters)
-            c4 = db.createCArray(g, 'lat', atom, (ni,), '', filters)
-
-            # save
-            c1[:] = x_edges
-            c2[:] = y_edges
-            c3[:] = lon
-            c4[:] = lat
+            # save info
+            dout['x_edges'][:] = x_edges
+            dout['y_edges'][:] = y_edges
+            dout['lon'][:] = lon
+            dout['lat'][:] = lat
 
         # append one set of grids per file
-        t1.append([(sat_name, ref_time, year, month)])  # <<<<<< test row.append() instead!
-        e1.append(dh_mean.reshape(ni, nj, 1))
-        e2.append(dh_error.reshape(ni, nj, 1))
-        e3.append(dg_mean.reshape(ni, nj, 1))
-        e4.append(dg_error.reshape(ni, nj, 1))
-        e5.append(n_ad.reshape(ni, nj, 1))
-        e6.append(n_da.reshape(ni, nj, 1))
-        t1.flush()
+        dout['table'].append([(sat_name, ref_time, year, month)]) ### test row.append() instead!
+        dout['dh_mean'].append(dh_mean.reshape(1, nj, nk))
+        dout['dh_error'].append(dh_error.reshape(1, nj, nk))
+        dout['dg_mean'].append(dg_mean.reshape(1, nj, nk))
+        dout['dg_error'].append(dg_error.reshape(1, nj, nk))
+        dout['n_ad'].append(n_ad.reshape(1, nj, nk))
+        dout['n_da'].append(n_da.reshape(1, nj, nk))
+        dout['table'].flush()
 
-        f.close()
+        file_in.close()
 
-    db.flush()
-    db.close()
+    file_out.flush()
+    file_out.close()
 
     print_info(x_edges, y_edges, lon, lat, dx, dy)
 
