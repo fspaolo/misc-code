@@ -14,6 +14,8 @@ import os
 import numpy as np
 import subprocess, cStringIO
 import matplotlib.pyplot as plt
+from mpl_toolkits.basemap import Basemap
+import matplotlib.cm as cm
 
 #---------------------------------------------------------------------
 # Visualization utilities
@@ -216,6 +218,187 @@ colormap_lib = {
     ],
 }
 
+#---------------------------------------------------------------------
+# Map projection utilities
+#---------------------------------------------------------------------
+
+def get_gtif(fname, lat_ts=-71, lon_0=0, lat_0=-90):
+    """
+    Reads a GeoTIFF image and returns the respective 2D array.
+    (it assumes polar stereographic proj)
+
+    Return
+    ------
+    x, y : 1D arrays containing the coordinates.
+    img : 2D array containing the image.
+    bbox_ll : lon/lat limits (lllon,lllat,urlon,urlat).
+
+    Notes
+    -----
+    MOA parameters: http://nsidc.org/data/moa/users_guide.html
+    lat_ts is standard lat (lat of true scale), or "latitude_of_origin"
+    lon_0/lat_0 is proj center (NOT grid center!)
+
+    To get GeoTIFF metadata:
+
+        $ gdalinfo file.tif
+    
+    """
+    try:
+        from osgeo import osr, gdal
+        import pyproj as pj
+    except:
+        msg = """some of the following modules are missing: 
+        `osgeo` (GDAL) or `pyproj`"""
+        raise ImportError(msg)
+    ds = gdal.Open(fname) 
+    img = ds.ReadAsArray()       # img -> matrix
+    gt = ds.GetGeoTransform()    # coordinates
+    nx = ds.RasterXSize          # number of pixels in x
+    ny = ds.RasterYSize          # number of pixels in y 
+    dx = gt[1]                   # pixel size in x
+    dy = gt[5]                   # pixel size in y 
+    xmin = gt[0]
+    ymax = gt[3]
+    # from: http://gdal.org/gdal_datamodel.html
+    ymin = ymax + nx*gt[4] + ny*dy 
+    xmax = xmin + nx*dx + ny*gt[2] 
+    # Polar stereo coords x,y
+    x = np.arange(xmin, xmax, dx)    
+    # in reverse order -> raster origin = urcrn
+    y = np.arange(ymax, ymin, dy)  
+    # bbox of raster img in x,y 
+    bbox_xy = (xmin, ymin, xmax, ymax)
+    # bbox of raster img in lon,lat (to plot proj)
+    p1 = pj.Proj(proj='stere', lat_ts=lat_ts, lon_0=lon_0, lat_0=lat_0)
+    xmin, ymin = p1(bbox_xy[0], bbox_xy[1], inverse=True)
+    xmax, ymax = p1(bbox_xy[2], bbox_xy[3], inverse=True)
+    bbox_ll = (xmin, ymin, xmax, ymax)
+    print 'image limits (left/right/bottom/top):'
+    print '(x,y)', bbox_xy[0], bbox_xy[2], bbox_xy[1], bbox_xy[3]
+    print '(lon,lat)', bbox_ll[0], bbox_ll[2], bbox_ll[1], bbox_ll[3]
+    return [x, y, img, bbox_ll]
+
+
+def align_data_with_fig(x, y, data, res=10):
+    """
+    Align map grid with figure frame. 
+    
+    Map proj origin (x0,y0) is at the center of the grid 
+    (polar stereo) and y-dim increases up, figure origin is at 
+    llcorner (cartesian) and y-dim increases down. 
+
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+    x = x[::res] - x.min()        # shift
+    y = y[::-res] - y.min()       # reverse y-dim and shift
+    data = data[::-res, ::res]    # reverse y-dim
+    return [x, y, data]
+
+
+def plot_moa_subregion(m, moafile, res=10):
+    bbox_sub = (m.llcrnrlon, m.llcrnrlat, m.urcrnrlon, m.urcrnrlat) 
+    # real proj coords (stere)
+    x, y, data, bbox_moa = get_gtif(moafile, lat_ts=-71)          
+    # fig coords
+    x, y, data = align_data_with_fig(x, y, data, res) 
+    # MOA fig domain
+    m1 = make_proj_stere(bbox_moa)
+    # subregion corners in fig coords 
+    x0, y0 = m1(bbox_sub[0], bbox_sub[1])
+    x1, y1 = m1(bbox_sub[2], bbox_sub[3])
+    # select MOA subregion
+    j, = np.where((x0 < x) & (x < x1))
+    i, = np.where((y0 < y) & (y < y1))
+    data2 = data[i[0]:i[-1], j[0]:j[-1]]
+    x2 = x[j[0]:j[-1]]
+    y2 = y[i[0]:i[-1]]
+    # plot MOA img
+    data2 = np.ma.masked_values(data2, 0)
+    m.imshow(data2, cmap=cm.gray)
+    return [m, x2, y2, data2]
+
+
+def make_proj_stere(bbox, lat_ts=-71, lon_0=0, lat_0=-90):
+    """
+    Make a `basemap` polar stereographic projection.
+
+    bbox : is (lon0, lat0, lon1, lat1), the ll and ur corners.
+    lat_ts : is standard lat (true scale in the projection).
+    lon_0, lat_0 : is the proj center (NOT grid center!).
+
+    Default values are the MOA parameters: 
+    http://nsidc.org/data/moa/users_guide.html
+    """
+    # Ellipsoid: http://nsidc.org/data/polar_stereo/ps_grids.html
+    a = 6378.273e3 
+    ec = 0.081816153 
+    b = a*np.sqrt(1.0 - ec**2) 
+    m = Basemap(
+        projection='stere', 
+        lat_ts=lat_ts,         
+        lon_0=lon_0, lat_0=lat_0,
+        # corners in lon,lat
+        llcrnrlon=bbox[0], llcrnrlat=bbox[1],
+        urcrnrlon=bbox[2], urcrnrlat=bbox[3], 
+        # ellipsoid for NSIDC grids:
+        rsphere=(a, b),
+        # ellipsoid WGS84:
+        #rsphere=(6378137.00, 6356752.3142),  
+        # sphere (mean radius):
+        #rsphere=6371200.,                    
+        )
+    return m
+
+
+def plot_grid_proj(m, lon, lat, grid, cell=None, shift=True, contourf=False, **kw):
+    """
+    Plot a 2D rectangular grid on a given map projection `m`.
+
+    m : Basemap projection
+    lon, lat : 1D arrays of grid coordinates
+    grid : 2D array (the grid)
+    """
+    if shift:
+        # shift the grid due to `pcolormesh()`
+        lon -= (lon[1] - lon[0])/2.
+        lat -= (lat[1] - lat[0])/2.
+    lon, lat = np.meshgrid(lon, lat)
+    xx, yy = m(lon, lat)
+    grid = np.ma.masked_invalid(grid)
+    if contourf:
+        m.contourf(xx, yy, grid, 25, **kw)
+    else:
+        m.pcolormesh(xx, yy, grid, **kw)
+    if cell is not None:
+        lon, lat = util.box(cell)
+        x, y = m(lon, lat)
+        m.plot(x, y, 'k', linewidth=2)
+    return m
+
+
+def get_gtif_subreg(m, filename, res=10):
+    bbox_sub = (m.llcrnrlon, m.llcrnrlat, m.urcrnrlon, m.urcrnrlat) 
+    # img coords (assuming polar stere)
+    x, y, data, bbox_ll = get_gtif(filename, lat_ts=-71)          
+    # img coords -> fig coords
+    x, y, data = align_data_with_fig(x, y, data, res) 
+    # fig domain
+    m1 = make_proj_stere(bbox_ll)
+    # subregion corners in fig coords 
+    x0, y0 = m1(bbox_sub[0], bbox_sub[1])
+    x1, y1 = m1(bbox_sub[2], bbox_sub[3])
+    # extract mask subregion
+    j, = np.where((x0 < x) & (x < x1))
+    i, = np.where((y0 < y) & (y < y1))
+    data_sub = data[i[0]:i[-1], j[0]:j[-1]]
+    x_sub = x[j[0]:j[-1]]
+    y_sub = y[i[0]:i[-1]]
+    # plot mask
+    #data_sub = np.ma.masked_values(data_sub, 0)
+    #m.imshow(data_sub, cmap=cm.gray)
+    return [x_sub, y_sub, data_sub]
 
 #---------------------------------------------------------------------
 # Matplotlib utilities
@@ -355,7 +538,7 @@ def savefig(fig, fh=None, format=None, distill=False, **kwargs):
     """
     Enhanced version of Matplotlib savefig command.
 
-    Takes the same argnuments as savefig.  Saves to disk if a filename is
+    Takes the same arguments as savefig.  Saves to disk if a filename is
     given. Otherwise return a StringIO file descriptor, or a numpy array.  PDF is
     distilled using Ghostscript to produce smaller files.
     """
@@ -471,9 +654,15 @@ def contour(*args, **kwargs):
     return pp
 
 
-def add_inner_title(ax, title, loc, size=None, **kwargs):
+def add_inner_title(ax, title='', loc=1, size=None, **kwargs):
     """
     Add title inside the figure. Same locations as `label`.
+
+    Example
+    -------
+    fig = plt.figure()
+    ax = fig.add_subplot((111))
+    ax = add_inner_title(ax, 'title', 3)
     """
     from matplotlib.offsetbox import AnchoredText
     from matplotlib.patheffects import withStroke
@@ -482,7 +671,7 @@ def add_inner_title(ax, title, loc, size=None, **kwargs):
     at = AnchoredText(title, loc=loc, prop=size, pad=0., 
         borderpad=0.5, frameon=False, **kwargs)
     ax.add_artist(at)
-    at.txt._text.set_path_effects([withStroke(foreground="w", linewidth=3)])
+    at.txt._text.set_path_effects([withStroke(foreground="w", linewidth=4)])
     at.patch.set_alpha(0.5)
     return at
 

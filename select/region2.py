@@ -36,10 +36,8 @@ parser.add_argument('-x', dest='loncol', default=3, type=int,
     help='column of longitude in the file (0,1,..) [default: 3]')
 parser.add_argument('-y', dest='latcol', default=2, type=int,
     help='column of latitude in the file (0,1,..) [default: 2]')
-parser.add_argument('-s', dest='suffix', default='_reg',
-    help='suffix for output file name [default: _reg]')
-parser.add_argument('-a', dest='ascii', default=False, action='store_const',
-    const=True, help='reads and writes ASCII files [default: HDF5]')
+parser.add_argument('-s', dest='suffix', default='_',
+    help='suffix for output file name [default: _NN]')
 parser.add_argument('-v', dest='verbose', default=False, action='store_const',
     const=True, help='for verbose [default: run silent]')
 
@@ -51,7 +49,6 @@ overlap = args.overlap
 loncol = args.loncol
 latcol = args.latcol
 suffix = args.suffix
-ascii = args.ascii
 verbose = args.verbose
 
 if step is None:
@@ -63,11 +60,6 @@ if overlap is None:
     dl, dr, db, dt = 0., 0., 0., 0.
 else:
     dl, dr, db, dt = overlap
-
-if ascii:
-    ext = '.txt'
-else:
-    ext = '.h5'
 
 def lon_180_to_360(lon):
     if isinstance(lon, np.ndarray):
@@ -135,11 +127,6 @@ CheckBounds(left, right, bottom, top)
 left = lon_180_to_360(left)
 right = lon_180_to_360(right)
 
-if ascii:
-    print 'reading and writing ASCII'
-else:
-    print 'reading and writing HDF5'
-
 print 'processing files: %d ...' % len(files)
 print 'region:', left, right, bottom, top
 print 'step size:', dx, dy
@@ -150,21 +137,17 @@ n_files = 0
 n_pts = 0
 n_validpts = 0
 for f in files:
-    if verbose: 
-        print 'file:', f
-    if ascii:
-        data = np.loadtxt(f)
-    else:
-        h5f = tb.openFile(f, 'r')
-        #data = h5f.root.data.read()  # in-memory
-        data = h5f.root.data          # out-of-memory
+    if verbose: print 'file:', f
+    h5f = tb.openFile(f, 'r')
+    #data = h5f.root.data.read()  # in-memory
+    data = h5f.root.data          # out-of-memory
 
     lon = data[:,loncol]
     lat = data[:,latcol]
     lon = lon_180_to_360(lon)
     n_pts += data.shape[0]
 
-    i_region = 0
+    i_region = 1
     for i_lat in np.arange(bottom, top, dy):
         for i_lon in np.arange(left, right, dx):
             i_left = i_lon - dl
@@ -186,24 +169,20 @@ for f in files:
                                           suffix, i_region, ext)
                 n_validpts += ind.shape[0]
                 i_region += 1
-                if ascii:
-                    np.savetxt(outfile, data[ind,:], fmt='%f')
-                    n_files += 1
-                else:
-                    fout = tb.openFile(outfile, 'w')
-                    atom = tb.Atom.from_dtype(data.dtype)
-                    shape = data[ind,:].shape 
-                    filters = tb.Filters(complib='blosc', complevel=9)
-                    dout = fout.createCArray(fout.root, 'data', atom=atom, 
-                                             shape=shape, filters=filters)
-                    dout[:] = data[ind,:] 
-                    fout.close()
-                    n_files += 1
-    if not ascii:
-        h5f.close()
+                # save
+                fout = tb.openFile(outfile, 'w')
+                atom = tb.Atom.from_dtype(data.dtype)
+                shape = data[ind,:].shape 
+                filters = tb.Filters(complib='zlib', complevel=9)
+                dout = fout.createCArray(fout.root, 'data', atom=atom, 
+                                         shape=shape, filters=filters)
+                dout[:] = data[ind,:] 
+                fout.close()
+                n_files += 1
+    h5f.close()
 
 print 'done.'
 print 'points read:', n_pts
 print 'valid points:', n_validpts
 print 'files created:', n_files
-print 'output ext: %s' % (suffix + ext)
+print 'output ext: %s' % (suffix+'NN'+ext)

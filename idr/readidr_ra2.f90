@@ -1,21 +1,23 @@
 !
 ! Read 112-Byte IDR files: Envisat 
 !
-! * convert MJD to time in seconds since 1-Jan-1985 (aka utc85 or ESA time)
+! * convert MJD to seconds since 1985-1-1 GMT(1) (aka utc85 or ESA time)
 ! * unapply (add) tide correction, for later use of better ones
 ! * apply selected increment for orbit correction
-! * check flags for 'retracked' and 'problem retracking'
+! * check flags for `retracked` and `problem retracking`
 ! * filter out points with undefined elevation values
 ! * filter out points with invalid lat/lon values
 ! * filter out points with unavailable geophysical corrections
 ! * save to ASCII or Binary format (same_original_name.txt or .bin)
 ! * save output files to specified output directory
 ! * all arguments are passed trough the command line
+!
+! (1) in practical terms GMT represents the same time reference as UTC.
 ! 
 ! Usage
 ! -----
 ! $ gfortran -fconvert=big-endian readidr_ra2.f90 -o readidr_ra2 
-! $ ./readidr_ra1 -h
+! $ ./readidr_ra2 -h
 !
 ! Notes
 ! ------
@@ -111,11 +113,14 @@ program main
    integer :: nfiles, npts, nvalidpts, nrec, nopt, ios, i
    logical :: filecreated, ascii, verbose
 
-   integer, parameter :: RECLEN = 112       ! record length in bytes: Envisat
+   integer, parameter :: RECLEN = 112      ! record length in bytes: Envisat
    real(8), parameter :: MJD85 = 46066.    ! 1-Jan-1985 00:00:00h in MJD
-   real(8), parameter :: DAYSECS = 86400. ! 1 day in seconds 
+   real(8), parameter :: DAYSECS = 86400.  ! 1 day in seconds 
 
-   ascii = .true.; nopt = 0; outdir = 'None'; verbose = .false.
+   nopt = 0
+   ascii = .true.
+   outdir = 'None'
+   verbose = .false.
    call get_arguments()
 
    print '(a,i9,a)', 'processing files: ', command_argument_count()-nopt, ' ...'
@@ -270,8 +275,8 @@ program main
                   write(2, '(i6, f20.6, 2f14.6, 2f14.3, 3i2)') &           ! [edit]
                      orbit, utc85, lat, lon, surf, agc, fmode, fret, fprob
                else
-                  ! all to binary double precision
-                  write(2) &                          
+                  write(2) &  
+                     ! I*4, F*8, F*8, F*8, F*8, F*8, F*8, I*2, I*2, I*2 
                      orbit, utc85, lat, lon, surf, agc, fmode, fret, fprob
                endif
 
@@ -290,9 +295,10 @@ program main
       print '(a)', 'output extension: .txt' 
    else
       print '(a)', 'output extension: .bin' 
-      print '(a)', 'data in binary format BIG ENDIAN:' 
-      print '(a)', 'I*4, F*8, F*8, F*8, F*8, F*8, F*8, I*2, I*2, I*2' 
+      print '(a)', 'data in binary format BIG-ENDIAN:' 
+      print '(a)', 'I*4, F*8, F*8, F*8, F*8, F*8, I*2, I*2, I*2' 
    endif   
+   print '(a)', '\n' 
 
 contains
 

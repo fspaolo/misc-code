@@ -3,6 +3,11 @@ import sys
 import re
 from glob import glob
 
+PATTERN = '_\w\w_\d\d_'
+ADDITION = ''
+#PATTERN = 'envisat'
+#REPLACE = 'envi'
+
 files = sys.argv[1:]
 
 if len(files) < 1 or '-h' in files:
@@ -26,12 +31,12 @@ print 'reading files:', len(files)
 #p = lambda s: re.findall('\d+', s)[0] + re.findall('\d+', s)[0][-2:]
 #files.sort(key=p)
 
-# return only the digits
+# return only the digits/chars
 d = lambda s: ''.join([k for k in s if k.isdigit()])
+c = lambda s: ''.join([k for k in s if not k.isdigit()])
 
 def rename1(files):
     for fname in files:
-
         ### get and generate new name 
         name = os.path.splitext(os.path.basename(fname))[0]
         sat, year, month, reg = name.split('_')[:4]
@@ -78,18 +83,42 @@ def rename2(files):
         print ''
 
 
-def rename3(files):
+def rename3(files, pattern, replace):
     for fname in files:
         for i in range(100000):
             pass
-        fname_new = fname.replace('_fris', '')
+        fname_new = fname.replace(pattern, replace)
         os.rename(fname, fname_new)
         #print 'old:', fname
         #print 'new:', fname_new
 
 
+def rename4(files, pattern, addition):
+    """
+    Just change a given patter in the name: adds `addition`.
+    """
+    for fname in files:
+
+        ### get pattern to be changed 
+        try:
+            pattern_old = re.findall(pattern, fname)[0]
+        except:
+            print 'pattern not found!!!'
+            continue
+        #pattern_new = pattern_old + addition 
+        p_old = pattern_old.split('_')
+        p_old.reverse()
+        pattern_new = '_'.join(p_old)
+
+        ### rename the file
+        fname_new = fname.replace(pattern_old, pattern_new)  # replace *all* occurencies
+        os.rename(fname, fname_new)
+        print 'change:', fname, '-->', fname_new
+        print '\n'
+
 #rename1(files)
 #rename2(files)
-rename3(files)
+#rename3(files, PATTERN, REPLACE)
+rename4(files, PATTERN, ADDITION)
 
 print 'done.'

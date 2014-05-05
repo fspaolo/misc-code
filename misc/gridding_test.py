@@ -10,6 +10,7 @@ from scipy.ndimage import gaussian_filter, median_filter, \
                           laplace, generic_filter, rotate, map_coordinates
 from mpl_toolkits.basemap import interp
 
+
 def get_xyz(fname, xcol=0, ycol=1, zcol=3):
     try:
         # load data from HDF5 file
@@ -20,16 +21,21 @@ def get_xyz(fname, xcol=0, ycol=1, zcol=3):
         d = np.loadtxt(fname)
     return d[:,xcol], d[:,ycol], d[:,zcol]
 
+
 def make_xyz(npts=200):
     """Make up some randomly distributed data.
     """
     np.random.seed(1234)
-    x = np.random.uniform(0, 1, npts)
-    y = np.random.uniform(0, 1, npts)
+    x = np.random.uniform(-10, 10, npts)  # or [0,1]
+    y = np.random.uniform(-10, 10, npts)  # or [0,1]
+    '''
     n = np.random.uniform(-.05, .05, npts) # noise
+    '''
     #z = x*np.exp(-x**2 - y**2) + n
-    z = x*(1-x)*np.cos(4*np.pi*x) * np.sin(4*np.pi*y**2)**2
+    #z = x*(1-x)*np.cos(4*np.pi*x) * np.sin(4*np.pi*y**2)**2
+    z = np.sin(np.sqrt(x**2 + y**2)) / (np.sqrt(x**2 + y**2))  # sombrero
     return x, y, z
+
 
 def make_grid(x, y, nx, ny):
     """Define the grid.
@@ -39,12 +45,14 @@ def make_grid(x, y, nx, ny):
     xx, yy = np.meshgrid(xi, yi)
     return xi, yi, xx, yy
 
+
 def grid2pts(xx, yy, zz):
     """Convert from grid (2D) to array (1D) w/o NaNs.
     """
     x, y, z = xx.ravel(), yy.ravel(), zz.ravel()
     i = ~np.isnan(z)
     return x[i], y[i], z[i]
+
 
 def plot(x, y, xi, yi, zz, title='gridded data'):
     """Contour the gridded data.
@@ -60,10 +68,10 @@ def plot(x, y, xi, yi, zz, title='gridded data'):
     pl.xlim(x.min()-incx, x.max()+incx)
     pl.ylim(y.min()-incy, y.max()+incy)
     pl.title('%s (%d points)' % (title, x.shape[0]))
-    pl.show()
+
 
 def main():
-    npts, nx, ny = 200, 30, 5 
+    npts, nx, ny = 75, 40, 40 
     
     ### make or get data
     if len(sys.argv) == 1:
@@ -71,7 +79,8 @@ def main():
     else:
         x, y, z = get_xyz(sys.argv[1], xcol=0, ycol=1, zcol=7)
     
-    ### make grid
+    # make grid
+    #----------------------------------------------------------------
     xi, yi, xx, yy = make_grid(x, y, nx, ny)
     
     ### binning
@@ -84,8 +93,9 @@ def main():
 
     #pl.hexbin(x, y, gridsize=20)
     
-    ### griding
-    zz = griddata((x, y), z, (xi[None,:], yi[:,None]), method='linear') # good!!!
+    ### gridding
+    #----------------------------------------------------------------
+    zz = griddata((x, y), z, (xi[None,:], yi[:,None]), method='cubic') # good!!!
     
     #zz = ml.griddata(x, y, z, xi, yi, interp='nn')                     # good!!!
 
@@ -99,23 +109,29 @@ def main():
     #zz = bisplev(xi, yi, tck)
     
     ### filtering
+    #----------------------------------------------------------------
     #zz = gaussian_filter(zz, .2, order=0)
     #zz = median_filter(zz, 5)
     #zz = laplace(zz)
     #f = lambda x: np.median(x)
     #zz = generic_filter(zz, f, size=10)
     
-    ### regrinding
+    ### regrindding
+    #----------------------------------------------------------------
     #_, _, xx, yy = make_grid(x, y, 100, 100)
-    #zz = interp(zz, xi, yi, xx, yy, order=1)                          # good!!!
+    #zz[np.isnan(zz)] = 0. # cannot have NaNs or be a masked array for `order=3`
+    #zz = interp(zz, xi, yi, xx, yy, order=3)                          # good!!!
 
+    #zz[np.isnan(zz)] = 0. # cannot have NaNs or be a masked array
     #rbs = RectBivariateSpline(xi, yi, zz, kx=3, ky=3)
-    #xi, yi, _, _ = make_grid(x, y, 100, 100)
+    #xi, yi, _, _ = make_grid(x, y, 500, 500)
     #zz = rbs(xi, yi)
     
 
-    #plot(x, y, xi, yi, zz)
+    pl.figure()
+    plot(x, y, xi, yi, zz)
     #bn.plotbins(xi, yi, zz)
+    pl.figure()
     pl.imshow(zz, extent=[xi[0], xi[-1], yi[0], yi[-1]], 
               origin='lower', interpolation='nearest')
     #pl.colorbar()

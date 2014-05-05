@@ -2,7 +2,7 @@
 """
 Select data points in a given geographic region. 
 
-Extract all the points lying within a rectangular geographic
+Extract all the points lying within a "rectangular" geographic
 area: left, right, bottom, top (all inclusive).
 
 """
@@ -79,6 +79,11 @@ for f in files:
 
     ind, = np.where((left <= lon) & (lon <= right) & \
                     (bottom <= lat) & (lat <= top))
+    '''
+    # for discontinuity in longitude
+    ind, = np.where(( (270 <= lon) & (lon < 320) & (-90 <= lat) & (lat < -74.2) ) | \
+                    ( (320 <= lon) & (lon < 340) & (-90 <= lat) & (lat < -77) ))
+    '''
 
     if ind.shape[0]:
         nvalidpts += ind.shape[0]

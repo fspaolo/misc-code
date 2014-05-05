@@ -218,9 +218,11 @@ for f in files:
         s = SubRegion(lon, lat, fmask, flag, i_left, i_right, i_bottom, i_top, dl, dr)
         ind = s.find_pts('ice')
         s.top = s.find_max_lat(ind) + 1.5    # set upper boundary
+        '''
         if i_region == 16: s.top = -66
         if i_region == 29: s.top = -62.4
         if i_region == 31: s.top = -75
+        '''
         ind = s.find_pts('all')
 
         if ind.shape[0]:

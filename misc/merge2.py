@@ -3,119 +3,100 @@
 Merge several HDF5 or ASCII files.
 
 Merge all files that have a common (given) pattern in the name.
-The patterns may be numbers and/or characters. Example: 'YYYYMM', 
-where YYYY is year and MM is month.
+The patterns may be numbers and/or characters. Example: 'YYYYMMDD', 
+where YYYY is year, MM is month and DD is day.
 
 """
 # Fernando <fpaolo@ucsd.edu>
-# November 4, 2010
+# November 2, 2012 
 
+import os
+import sys
+import re
 import numpy as np
 import tables as tb
 import argparse as ap
-import re
-import sys
-import os
 
 # parse command line arguments
 parser = ap.ArgumentParser()
-parser.add_argument('file', nargs='+', help='HDF5/ASCII file[s] to merge')
-parser.add_argument('-p', dest='pattern', default="_\d\d\d\d", 
-                    help="pattern to match in the file names " 
-                    "[default: '_\d\d\d\d']")
+parser.add_argument('files', nargs='+', help='HDF5 2D file[s] to merge')
+parser.add_argument('-p', dest='pattern', default="_\d\d\d\d\d\d\d\d", 
+    help="pattern to match in the file names, default '_\d\d\d\d\d\d\d\d'")
 parser.add_argument('-o', dest='prefix', default='all_', 
-                    help='prefix of output file name [default: all_]')
-parser.add_argument('-a', dest='ascii', default=False, action='store_const',
-                    const=True, help='reads and writes ASCII files ' 
-                    '[default HDF5]')
-
+    help='prefix of output file name, default all_')
+parser.add_argument('-s', dest='suffix', default='', 
+    help='suffix of output file name, default none')
+parser.add_argument('-n', dest='count', action='store_const', const=True, \
+    default=False, help='count number of tasks and exit, default no')
 args = parser.parse_args()
 
-if len(args.file) > 1:
-    files = args.file
+
+def close_files():
+    for fid in tb.file._open_files.values():
+        fid.close() 
+
+def get_files_to_merge(files, pattern):
+    tomerge = {}
+    patterns = np.unique(re.findall(pattern, ' '.join(files)))
+    for s in patterns:
+        tomerge[s] = [f for f in files if s in f]
+    return tomerge
+
+def get_fname_out(stem, fnamein, pref='', suf=''):
+    path = os.path.split(fnamein)[0]
+    return os.path.join(path, ''.join([pref, stem, suf, '.h5']))
+
+def get_shape_out(files):
+    nrows = 0
+    for fname in files:
+        f = tb.openFile(fname, 'r')
+        data = f.getNode('/data')
+        nrow, ncols = data.shape
+        nrows += nrow
+        f.close()
+    return (nrows, ncols)
+
+def merge_files(fname, shape, files):
+    print 'merging:\n', files
+    print 'into:\n', fname, '...'
+    fout = tb.openFile(fname, 'w')
+    nrows, ncols = shape
+    atom = tb.Atom.from_type('float64')
+    filters = tb.Filters(complib='zlib', complevel=9)
+    dout = fout.createEArray('/', 'data', atom=atom, 
+        shape=(0, ncols), filters=filters)
+    for fnamein in files:
+        fin = tb.openFile(fnamein, 'r')
+        data = fin.getNode('/data')
+        dout.append(data[:])
+    close_files()
+    print 'done.'
+
+def merge_all(tomerge, pref='', suf=''):
+    for patt, fnames in tomerge.items():
+        fnameout = get_fname_out(patt, fnames[0], pref, suf)
+        shape = get_shape_out(fnames)
+        merge_files(fnameout, shape, fnames)
+
+
+if len(args.files) > 1:
+    files = args.files
 else:
     # to avoid Unix limitation on number of cmd args: use `glob`
+    # and pass a _str_ with `dir + file pattern` instead of files
     from glob import glob
-    # pass a str with `dir + file pattern` instead of files
-    files = glob(args.file[0])   
+    files = glob(args.files[0])   
 
 PATTERN = str(args.pattern)
-
+pref = args.prefix
+suf = args.suffix
+#path, _ = os.path.split(files[0])          # path of first file
 
 print 'pattern to match:', PATTERN
+print 'merging files: %d ...' % len(files)
 
-if args.ascii:
-    ext = '.txt'
-    print 'reading and writing ASCII files'
-else:
-    ext = '.h5'
-    print 'reading and writing HDF5 files'
+tomerge = get_files_to_merge(files, PATTERN)
+if count: print 'number of tasks:', len(tomerge.items()); sys.exit()
+merge_all(tomerge, pref=pref, suf=suf)
 
-if files:
-    path, _ = os.path.split(files[0])          # path of first file
-    print 'merging files: %d ...' % len(files)
-else:
-    print 'no input files!'
-    sys.exit()
-
-while files:
-
-    ### search first file that matches the pattern
-
-    for j, ff in enumerate(files):    
-        match = re.search(PATTERN, ff)
-        if match:
-            isfirst = True
-            match = match.group()
-            # check if there is character in common (duplicate)
-            if args.prefix[-1] == match[0] and match[0] in ['_', '-']:
-                suffix = match[1:]                    
-            else:
-                suffix = match[:]                    
-            # avoid duplicating the extension in the file name
-            suffix, ext2 = os.path.splitext(suffix)
-            fname = ''.join([args.prefix, suffix, ext])
-            outfile = os.path.join(path, fname)
-            break
-        else:
-            files[j] = None          # mark no matched files
-            continue
-
-    ### match all files to the first found 
-
-    for i, f in enumerate(files):    
-        if match and f and match in f:
-            if args.ascii:
-                data = np.loadtxt(f)
-                # still need to complete for ASCII !!!!!
-                print 'still need to complete for ASCII !!!!!'
-            else:
-                fin = tb.openFile(f)
-                data = fin.root.data
-                #data = fin.root.data.read()
-
-                if isfirst:
-                    fout = tb.openFile(outfile, 'w')
-                    shape = (0, data.shape[1])
-                    atom = tb.Atom.from_dtype(data.dtype)
-                    filters = tb.Filters(complib='blosc', complevel=9)
-                    dout = fout.createEArray(fout.root, 'data', atom=atom, 
-                                             shape=shape, filters=filters)
-                    isfirst = False
-
-                dout.append(data[:])
-                fin.close()
-
-            files[i] = None            # mark merged files
-            
-    files = filter(None, files)    # filter out marked files
-    if not args.ascii:
-        try:                               # if 'fout' was open
-            if fout.isopen:
-                fout.close()
-                print 'file created:', outfile
-        except:
-            print 'no matching files!'
-            pass
-
-print 'done.'
+close_files()

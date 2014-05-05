@@ -21,6 +21,18 @@ def sec2dt(secs, since_year=1985):
     return np.asarray([dt_ref + dt.timedelta(seconds=s) for s in secs])
 
 
+def lon_180_to_360(lon):
+    if isinstance(lon, np.ndarray):
+        lon[lon<0] += 360
+    elif lon < 0: 
+        lon += 360
+    return lon
+
+
+def close_files():
+    [fid.close() for fid in tb.file._open_files.values()]
+
+
 def what_season(month):
     """
     Given a month finds the 3-month block of the respective season.
@@ -109,7 +121,7 @@ def define_windows(t1, t2, n=3):
         windows.append((t1, t2))
         t1 += step
         if t2 >= t_end: break
-    print 'num windows:', len(windows) 
+    print 'total windows:', len(windows) 
     print 'windows time range:', t_beg, t2
     return windows
 
@@ -133,40 +145,40 @@ def get_windows(dtimes, windows):
     return result
 
 
-def get_window(years, months, m1, m2):
+def define_sectors(x1, x2, dx=90, buf=0.5):
     """
-    Return the month window m1-m2 for every year.
+    N-sectors of the size `dx + 2*buf` degrees.
     """
-    res = []
-    for year in np.unique(years):
-        ind, = np.where( (years == year) & (m1 <= months) & (months <= m2) )
-        res.append((ind, year, [m1, m2]))
-    return res
-
-
-def get_months(years, months):
-    """
-    Return the months in every year.
-    """
-    res = []
-    ii = 0
+    x_beg, x_end = x1, x2
+    sectors = []
     while True:
-        first_valid_month = months[ii]               # take the first month
-        year = years[ii]                             # take the respective year
-        ind, = np.where( (years == year) & (months == first_valid_month) )
-        res.append((ind, year, first_valid_month))
-        ii = ind[-1] + 1                             # next month
-        if ii == months.shape[0]: 
-            break
-    return res
+        x2 = x1 + dx
+        sectors.append((x1-buf, x2+buf))
+        x1 += dx
+        if x2 >= x_end: break
+    print 'sector size: {0} deg'.format(dx)
+    print 'total sectors:', len(sectors) 
+    return sectors
 
 
-def get_years(years):
-    res = []
-    for year in np.unique(years):
-        ind, = np.where(years == year)
-        res.append((ind, year, None))
-    return res
+def get_sectors(lons, sectors):
+    """
+    Find all data points within the given sectors.
+    """
+    lons = lon_180_to_360(lons)
+    result = []
+    for k, (x1, x2) in enumerate(sectors):
+        if x1 < 0:
+            x1 += 360
+            ind, = np.where((x1 <= lons) | (lons <= x2))
+        elif x2 > 360:
+            x2 -= 360
+            ind, = np.where((x1 <= lons) | (lons <= x2))
+        else:
+            ind, = np.where((x1 <= lons) & (lons <= x2))
+        if len(ind) > 0:
+            result.append((ind, k+1))
+    return result
 
 
 def print_dates(dates, N):
@@ -191,22 +203,8 @@ def save_arr(fname, data):
                                  shape=shape, filters=filters)
         dout[:] = data
         fout.close()
-
-
-def save_tbl(fname, table, rows=None, complib='zlib'):
-    """
-    Create/Reopen a file and save an existing table.
-    """
-    filters = tb.Filters(complib=complib, complevel=9)
-    f = tb.openFile(fname, 'a')  # if doesn't exist create it
-    t = f.createTable('/', table.name, table.description, '', filters)
-    if rows is None:
-        t.append(table[:])
     else:
-        t.append(table[rows])
-    t.flush()
+        print 'no output file extension!'
+        pass
 
 
-def close_files():
-    for fid in tb.file._open_files.values():
-        fid.close() 

@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 """
- Convert HDF5 data files (2D array) to flat Binary (stream of bytes).
+Convert HDF5 data files (2D array) to flat Binary (stream of bytes).
 
- If the extension of the input file is '.h5' the program performs convertion
- from HDF5 to flat Binary. For any other extention it is assume convertion
- from flat Binary to HDF5.
+If the extension of the input file is '.h5' the program performs convertion
+from HDF5 to flat Binary. For any other extention it is assume convertion
+from flat Binary to HDF5.
 
- Fernando Paolo <fpaolo@ucsd.edu>
- May 12, 2011
+Fernando Paolo <fpaolo@ucsd.edu>
+May 12, 2011
 """
 
+import os
+import sys
 import argparse as ap
 import numpy as np
 import tables as tb 
 import mimetypes as mt
-import sys
-import os
 
 # parse command line arguments
 parser = ap.ArgumentParser()
@@ -31,8 +31,15 @@ parser.add_argument('-d', dest='dtype', default='f8',
     help='data type: i2, i4, f4, f8, ... [default: f8]')
 parser.add_argument('-e', dest='ext', default=None,
     help='output file extension [default: .bin or .h5]')
+parser.add_argument('-b', dest='big_endian', default=False, action='store_const',
+    const=True, help='if data is big-endian [default: little-endian]')
 
 args = parser.parse_args()
+big_endian = args.big_endian
+
+dt = np.dtype([('f1', '>i4'), ('f2', '>f8'), ('f3', '>f8'), 
+               ('f4', '>f8'), ('f5', '>f8'), ('f6', '>f8'), 
+               ('f7', '>i2'), ('f8', '>i2'), ('f9', '>i2')]) 
 
 _, ext_in = os.path.splitext(args.files[0])
 
@@ -88,13 +95,17 @@ else:
         h5f = tb.openFile(f.split('.')[0] + ext_out, 'w')
         ncol = args.ncol
         dtype = args.dtype
-        data = np.fromfile(f, dtype=dtype)  # load data in-memory
-        shape = (data.shape[0]/ncol, ncol)
+        if big_endian:
+            data = np.fromfile(f, dtype=dt)          # load data in-memory
+            shape = (data.shape[0]/len(dt), len(dt))
+        else:
+            data = np.fromfile(f, dtype=dtype)       # load data in-memory
+            shape = (data.shape[0]/ncol, ncol)
         if args.inmemory:
             h5f.createArray(h5f.root, 'data', data.reshape(shape))
         else:                               # keep data on-disk
             atom = tb.Atom.from_dtype(np.dtype(dtype))
-            filters = tb.Filters(complib='blosc', complevel=5)
+            filters = tb.Filters(complib='blosc', complevel=9)
             dout = h5f.createCArray(h5f.root,'data', atom=atom, shape=shape,
                                     filters=filters)
             dout[:] = data.reshape(shape)

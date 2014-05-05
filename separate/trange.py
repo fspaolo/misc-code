@@ -1,9 +1,13 @@
+"""
+Finds the min and max times of several files.
+"""
 import sys
+import numpy as np
 import tables as tb
 import argparse as ap
 import datetime as dt
 
-from funcs import *
+from funcs import sec2dt
 
 parser = ap.ArgumentParser()
 parser.add_argument('files', nargs='+', help='HDF5 file(s) to read')
@@ -33,7 +37,10 @@ def get_times(files, timecol, since_year):
         if t_max > tmax:
             tmax = t_max
         f.close()
-    print 'dataset time range (secs):', tmin, tmax
+    print 'min max time (seconds):', tmin, tmax
+    tmin, tmax = sec2dt([tmin, tmax], since_year)
+    print 'min max time (datetime):', tmin, tmax
+    print 'total time:', tmax-tmin
     return [tmin, tmax]
 
 tmin, tmax = get_times(files, timecol, since_year)

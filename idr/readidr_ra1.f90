@@ -1,6 +1,7 @@
-! Read 100-Byte IDR files: Seasat, Geosat, GFO and ERS-1/2
 !
-! * convert MJD to time in seconds since 1-Jan-1985 (aka utc85 or ESA time)
+! Read 100-Byte IDR files: Seasat, Geosat, GFO, ERS-1 and ERS-2
+!
+! * convert MJD to seconds since 1985-1-1 GMT(1) (aka utc85 or ESA time)
 ! * unapply (add) tide correction, for later use of better ones
 ! * apply selected increment for orbit correction
 ! * check flags for 'retracked' and 'problem retracking'
@@ -10,6 +11,8 @@
 ! * save to ASCII or Binary format (same_original_name.txt or .bin)
 ! * save output files to specified output directory
 ! * all arguments are passed trough the command line
+!
+! (1) in practical terms GMT represents the same time reference as UTC.
 ! 
 ! Usage
 ! -----
@@ -22,7 +25,7 @@
 ! Undefined corrections are set to 32767
 ! For GFO use inc: 2 (better inc) or 1 (more points)
 ! For Geosat/GM: use inc 2
-! For Seasat, Geosat/ERM, ERS-1/-2: use inc 3
+! For Seasat, Geosat/ERM, ERS-1/2: use inc 3
 !
 ! For IDR format see:
 ! http://icesat4.gsfc.nasa.gov/data_products/level2.php
@@ -106,10 +109,14 @@ program main
    logical :: filecreated, ascii, verbose
 
    integer, parameter :: RECLEN = 100      ! record length in bytes
-   real(8), parameter :: MJD85 = 46066.    ! 1-Jan-1985 00:00:00h in MJD
+   real(8), parameter :: MJD85 = 46066.    ! 1-Jan-1985 00:00:00h (GMT) in MJD
    real(8), parameter :: DAYSECS = 86400.  ! 1 day in seconds 
 
-   ascii = .true.; nopt = 0; outdir = 'None'; incr = '3'; verbose = .false.
+   nopt = 0
+   incr = '3'
+   ascii = .true.
+   outdir = 'None'
+   verbose = .false.
    call get_arguments()
 
    print '(a,i9,a)', 'processing files: ', command_argument_count()-nopt, ' ...'
@@ -227,7 +234,7 @@ program main
 
                ! fday: is "fraction" of a day
                ! mjd: is modified julian "days"
-               ! utc85: is seconds passed since 1-Jan-1985 0:0:0h
+               ! utc85: is seconds passed since 1-Jan-1985 0:0:0h (GMT)
                fday = (secrev + fsecrev + secdat) / DAYSECS   ! days
                utc85 = (mjd + fday - MJD85) * DAYSECS         ! secs
  
@@ -265,8 +272,8 @@ program main
                   write(2, '(i6, f20.6, 2f14.6, 2f14.3, 3i2)') &           ! [edit]
                      orbit, utc85, lat, lon, surf, agc, fmode, fret, fprob
                else
-                  ! all to binary double precision
                   write(2) &                          
+                     ! I*4, F*8, F*8, F*8, F*8, F*8, F*8, I*2, I*2, I*2 
                      orbit, utc85, lat, lon, surf, agc, fmode, fret, fprob
                endif
 
@@ -285,9 +292,10 @@ program main
       print '(a)', 'output extension: .txt' 
    else
       print '(a)', 'output extension: .bin' 
-      print '(a)', 'data in binary format BIG ENDIAN:' 
-      print '(a)', 'I*4, F*8, F*8, F*8, F*8, F*8, F*8, I*2, I*2, I*2' 
+      print '(a)', 'data in binary format BIG-ENDIAN:' 
+      print '(a)', 'I*4, F*8, F*8, F*8, F*8, F*8, I*2, I*2, I*2' 
    endif   
+   print '(a)', '\n' 
 
 contains
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 doc = """\
-Separate satellite tracks in asc/des using `latitude` and `time`.
+Separate satellite tracks in asc/des using latitude and time.
 
 Two output options:
 
-1) Add extra column with flags: 0=ascending, 1=descending [default]
-2) Separated tracks in different output files: file_asc.ext, file_des.ext
+1) Add extra column with flags: 0=asc/1=des [default]
+2) Separate tracks in different files: filein_a.ext, filein_d.ext
 """
 """
 Example
@@ -20,6 +20,8 @@ Works for Southern Emisphere. For NH a small modification is needed!
 
 Fernando Paolo <fpaolo@ucsd.edu>
 November 1, 2010
+
+Adapted to operate with Tables on Aug 22, 2012
 """
 
 import os
@@ -30,29 +32,21 @@ import argparse as ap
 
 # parse command line arguments
 parser = ap.ArgumentParser(formatter_class=ap.RawTextHelpFormatter, description=doc)
-parser.add_argument('file', nargs='+', help='HDF5/ASCII file[s] to read')
+parser.add_argument('files', nargs='+', help='HDF5 file(s) to read')
 parser.add_argument('-y', dest='latcol', default=2, type=int,
-                    help='column of latitude in the file (0,1,..) [default: 2]')  
+                    help='column of latitude in the file (0,1,..), default 2')  
 parser.add_argument('-t', dest='timecol', default=1, type=int,
-                    help='column of time in the file (0,1,..) [default: 1]')  
+                    help='column of time in the file (0,1,..), default 1')  
 parser.add_argument('-l', dest='timelag', default=10, type=int,
-                    help='max time lag between track points [default: 10 sec]')  
-parser.add_argument('-f', dest='trackfiles', default=False, 
+                    help='max time lag between track points, default 10 sec')  
+parser.add_argument('-f', dest='trkfiles', default=False, 
                     action='store_const', const=True, 
-                    help='separate tracks in files [default: add column with flags]')
-parser.add_argument('-a', dest='ascii', default=False, action='store_const',
-                    const=True, help='reads and writes ASCII files [default: HDF5]')
-parser.add_argument('-m', dest='inmemory', default=False, action='store_const',
-                    const=True, help='load data in-memory (faster) ' 
-                    '[default: out-of-memory]')
-
+                    help='separate tracks in files, default add column with flags')
 args = parser.parse_args()
-LATCOL = args.latcol
-TIMECOL = args.timecol 
-TIMELAG = args.timelag  # in seconds
+
 
 try:
-    import _tracksep as C       # C function for speed up!
+    import _tracksep as mod       # C function for speed up!
     cmodule = True
     print 'C module imported!'
 except:
@@ -61,28 +55,28 @@ except:
     print 'using pure python instead'
 
 
-def tracksep_indices(data, LATCOL, inmemory):
-    """Find the indices in `data` for ascending/descending tracks.
+def tracksep_indices(lat, time, timelag=10):
     """
-    N = data.shape[0]
+    Finds the indices for asc/des tracks using latitude and time.
+    """
+    N = lat.shape[0]
     i_asc = np.zeros(N, np.bool_)                           # data in-memory
     i_des = np.zeros(N, np.bool_)                           # all false
 
-    if cmodule and inmemory:                                # C function
-        C.tracksep_indices(data, LATCOL, i_asc, i_des)
+    if cmodule:                                             # C function
+        mod.tracksep_indices(lat, time, i_asc, i_des)
     else:                                                   # Py function
         i_beg = 0
         for i_end in xrange(N-1):
 
-            if (data[i_end+1,TIMECOL] - data[i_end,TIMECOL]) > TIMELAG or i_end == N-2:  
-                # if break in time or last track
+            # if break in time or last track
+            if (time[i_end+1] - time[i_end]) > timelag or (i_end == N-2):
 
-                i_min = np.argmin(data[i_beg:i_end+1,LATCOL])
-                i_min = np.unravel_index(i_min, data[i_beg:i_end+1,LATCOL].shape)[0]
+                i_min = np.argmin(lat[i_beg:i_end+1])
                 i_min += i_beg
 
-                if i_beg != i_min and i_min != i_end:       # asc + des
-                    if data[i_beg,LATCOL] < data[i_min,LATCOL]:  
+                if (i_beg != i_min) and (i_min != i_end):   # asc + des
+                    if lat[i_beg] < lat[i_min]:  
                         i_asc[i_beg:i_min+1] = True         # first segment asc
                         i_des[i_min+1:i_end+1] = True       # second segment des
                     else:                       
@@ -98,141 +92,141 @@ def tracksep_indices(data, LATCOL, inmemory):
 
         i_asc[-1] = i_asc[-2]                               # set last element
         i_des[-1] = i_des[-2]
+    i_asc, = np.where(i_asc == True)                        # bool -> indices 
+    i_des, = np.where(i_des == True)
     return i_asc, i_des
 
 
-def tracksep_flags(data, LATCOL, inmemory):
-    """Compute flags (0|1) in `data` for ascending/descending tracks.
+def tracksep_flags(lat, time, timelag=10):
     """
-    N = data.shape[0]
+    Compute flags (0/1) for asc/des tracks using latitude and time.
+    """
+    N = lat.shape[0]
     flags = np.empty(N, np.uint8)                           # data in-memory
 
-    i_beg = 0
-    for i_end in xrange(N-1):
+    if cmodule:                                             # C function
+        mod.tracksep_flags(lat, time, flags)
+    else:                                                   # Py function
+        i_beg = 0
+        for i_end in xrange(N-1):
 
-        if (data[i_end+1,TIMECOL] - data[i_end,TIMECOL]) > TIMELAG or i_end == N-2:  
             # if break in time or last track
+            if (time[i_end+1] - time[i_end]) > timelag or (i_end == N-2):
 
-            i_min = np.argmin(data[i_beg:i_end+1,LATCOL])
-            i_min = np.unravel_index(i_min, data[i_beg:i_end+1,LATCOL].shape)[0]
-            i_min += i_beg
+                i_min = np.argmin(lat[i_beg:i_end+1])
+                i_min += i_beg
 
-            if i_beg != i_min and i_min != i_end:           # asc + des
-                if data[i_beg,LATCOL] < data[i_min,LATCOL]:  
-                    flags[i_beg:i_min+1] = 0                # first segment asc
-                    flags[i_min+1:i_end+1] = 1              # second segment des
-                else:                       
-                    flags[i_beg:i_min+1] = 1
-                    flags[i_min+1:i_end+1] = 0
-            elif i_beg == i_min:                            # all asc
-                flags[i_beg:i_end+1] = 0 
-            elif i_min == i_end:                            # all des
-                flags[i_beg:i_end+1] = 1 
-            else:
-                flags[i_beg:i_end+1] = 2 
-            i_beg = i_end + 1
+                if (i_beg != i_min) and (i_min != i_end):   # asc + des
+                    if lat[i_beg] < lat[i_min]:  
+                        flags[i_beg:i_min+1] = 0            # first segment asc
+                        flags[i_min+1:i_end+1] = 1          # second segment des
+                    else:                       
+                        flags[i_beg:i_min+1] = 1
+                        flags[i_min+1:i_end+1] = 0
+                elif i_beg == i_min:                        # all asc
+                    flags[i_beg:i_end+1] = 0 
+                elif i_min == i_end:                        # all des
+                    flags[i_beg:i_end+1] = 1 
+                else:
+                    flags[i_beg:i_end+1] = 2 
+                i_beg = i_end + 1
 
-    flags[-1] = flags[-2]                                   # set last element
+        flags[-1] = flags[-2]                               # set last element
     return flags
 
 
-def main():
-    
-    print 'processing files: %d ...' % len(args.file)
-    if args.ascii:
-        print 'reading and writing ASCII'
-    else:
-        print 'reading and writing HDF5'
-    if args.trackfiles:
-        print "separate tracks in files: '_asc' and '_des'"
+def add_arr_as_tbl(fid, tname, cols):
+    """
+    Given 1D arrays add a Table to an existing file.
+
+    fid : file object in append mode ('a').
+    tname : name of new table.
+    cols : a dictionary containing 'col_names' and 'col_vals'.
+    """
+    # Create column description
+    descr = {}
+    for i, (cname, cval) in enumerate(cols.items()):
+        descr[cname] = tb.Col.from_dtype(cval.dtype, pos=i)
+    table = fid.createTable('/', tname, descr, "", tb.Filters(9))
+    table.append([v for k, v in cols.items()])
+    table.flush()
+    print "file with new table:", fid
+
+
+def main(args):
+    files = args.files
+    trkfiles = args.trkfiles
+    latcol = args.latcol
+    timecol = args.timecol 
+    timelag = args.timelag    # in seconds
+
+    print 'processing files: %d ...' % len(files)
+    if trkfiles:
+        print "separate tracks in files: *_a.ext and *_d.ext"
     else:
         print 'separate tracks using flags: 0=asc, 1=des'
-    if args.inmemory:
-        print 'in-memory'
     
-    for f in args.file:
-        if args.ascii:
-            data = np.loadtxt(f)
-        else:
-            fin = tb.openFile(f)
-            if args.inmemory:
-                data = fin.root.data.read()    # in-memory
-            else:
-                data = fin.root.data           # out-of-memory
-     
-        if data.shape[0] < 3:                  # need at least 3 points
+    for f in files:
+        # input
+        #-------------------------------------------------------------
+
+        fin = tb.openFile(f)
+        data = fin.getNode('/data')  # on-disk
+        lat = data[:,latcol]         # in-memory
+        time = data[:,timecol]
+
+        #-------------------------------------------------------------
+
+        if lat.shape[0] < 3:    # need at least 3 points
             print f
-            print 'no track -> file with less than 3 points'
+            print 'no track -> the file has less than 3 data points'
             continue
-        else:
-            fname = os.path.splitext(f)[0]
-     
+
         print 'separating tracks ...'  
-        #---------------------------------------------------------------
-        if args.trackfiles:
-            i_asc, i_des = tracksep_indices(data, LATCOL, args.inmemory)
-     
-            # save files
-            if args.ascii:
-                np.savetxt(fname + '_asc.txt', data[i_asc,:], fmt='%f')
-                np.savetxt(fname + '_des.txt', data[i_des,:], fmt='%f')
-            else:
-                filters = tb.Filters(complib='blosc', complevel=9)
-                atom = tb.Atom.from_dtype(data.dtype)
-     
-                shape = data[i_asc,:].shape
-                fout = tb.openFile(fname + '_asc.h5', 'w')
-                dout = fout.createCArray(fout.root,'data', atom=atom, shape=shape,
-                                         filters=filters)
-                dout[:] = data[i_asc,:] 
-                fout.close()
-     
-                shape = data[i_des,:].shape
-                fout = tb.openFile(fname + '_des.h5', 'w')
-                dout = fout.createCArray(fout.root,'data', atom=atom, shape=shape,
-                                         filters=filters)
-                dout[:] = data[i_des,:] 
-                fout.close()
-        #---------------------------------------------------------------
+
+        if trkfiles:
+            i_asc, i_des = tracksep_indices(lat, time, timelag=timelag)
         else:
-            flags = tracksep_flags(data, LATCOL, args.inmemory)
+            flags = tracksep_flags(lat, time, timelag=timelag)
+
+        # output
+        #-------------------------------------------------------------
      
-            # save files
-            if args.ascii:
-                data = np.column_stack((data, flag))  # add last colum with flags
-                np.savetxt(fname + '_sep.txt', data, fmt='%f')
-            else:
-                filters = tb.Filters(complib='blosc', complevel=9)
-                atom = tb.Atom.from_dtype(data.dtype)
+        fname = os.path.splitext(f)[0]
+        atom = tb.Atom.from_dtype(data.dtype)
+        filters = tb.Filters(complib='blosc', complevel=9)
+        if trkfiles:
+            # create two output files
+            shape = data[i_asc,:].shape
+            fout = tb.openFile(fname + '_a.h5', 'w')
+            dout = fout.createCArray('/','data', atom=atom, shape=shape, filters=filters)
+            dout[:] = data[i_asc,:] 
      
-                shape = (data.shape[0], data.shape[1] + 1)
-                fout = tb.openFile(fname + '_sep.h5', 'w')
-                dout = fout.createCArray(fout.root,'data', atom=atom, shape=shape,
-                                         filters=filters)
-                dout[:,:-1] = data[:] 
-                dout[:,-1] = flags[:] 
-                fout.close()
+            shape = data[i_des,:].shape
+            fout = tb.openFile(fname + '_d.h5', 'w')
+            dout = fout.createCArray('/','data', atom=atom, shape=shape, filters=filters)
+            dout[:] = data[i_des,:] 
+        else:
+            shape = (data.shape[0], data.shape[1]+1)
+            fout = tb.openFile(fname + '_track.h5', 'w')
+            dout = fout.createCArray('/','data', atom=atom, shape=shape, filters=filters)
+            dout[:,:-1] = data[:]
+            dout[:,-1] = flags
+
+        for fid in tb.file._open_files.values():
+            fid.close() 
+
         #---------------------------------------------------------------
         
-        if not args.ascii and fin.isopen:
-            fin.close()
-    
     print 'done.'
-    if args.trackfiles:
-        if args.ascii:
-            print 'output ext: *_asc.txt, *_des.txt'
-        else:
-            print 'output ext: *_asc.h5, *_des.h5'
+    if trkfiles:
+        print 'output ext: *_a.h5 and *_d.h5'
     else:
-        print 'column w/flags (last one) added to original data:'
+        print 'column w/flags added to original data file:'
         print '0 = ascending'
         print '1 = descending'
-        if args.ascii:
-            print 'output ext: *_sep.txt'
-        else:
-            print 'output ext: *_sep.h5'
 
 
 if __name__ == '__main__':
-    status = main()
+    status = main(args)
     sys.exit(status)

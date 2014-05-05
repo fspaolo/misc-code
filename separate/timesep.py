@@ -18,8 +18,9 @@ import datetime as dt
 
 from funcs import *
 
-# ICESat campaigns:
-# 2a,2b,2c,3a,3b,3c,3d,3e,3f,3g,3g,3i,3j,3k,2d,2e,3f
+# ICESat campaigns
+#-----------------
+# 2a,2b,2c,3a,3b,3c,3d,3e,3f,3g,3h,3i,3j,3k,2d,2e,2f
 T1 = [(2003,10,4), (2004,2,17), (2004,5,18), (2004,10,3), 
       (2005,2,17), (2005,5,20), (2005,10,21), (2006,2,22),
       (2006,5,24), (2006,10,25), (2007,3,12), (2007,10,2), 
@@ -52,7 +53,7 @@ parser.add_argument('-d', dest='usedir', action='store_const', const=True, \
     default=False, help='create directories for output files, default no')
 parser.add_argument('-p', dest='N', type=int, default=0, 
     help='print on the screen N dates of each file and exit')
-parser.add_argument('-r', dest='range', nargs=2, default=(0, 0), 
+parser.add_argument('-r', dest='range', nargs=2, type=float, default=(0, 0), 
     help='the `t_beg` and `t_end` of dataset (in secs), default 0 0')
 args = parser.parse_args()
 
@@ -93,6 +94,7 @@ def main(args):
     if mov_windows:
         #tmin, tmax = get_times(files, timecol, since_year)   # dt1, dt2 of database
         tmin, tmax = sec2dt([tmin, tmax], since_year)
+        print 'dataset time range:', tmin, tmax
         tmin = dt.datetime(tmin.year, tmin.month, 1)   # always start at the beg
         windows = define_windows(tmin, tmax, n=3)      # windows between t1 and t2
 

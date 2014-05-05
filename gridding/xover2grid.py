@@ -1,33 +1,49 @@
 #!/usr/bin/env python
 """
-Take crossover files as input and construct grids of `average dh, dAGC, 
-errors, #obs` at every grid cell: 
+Take crossover files as Input and construct grids of average `dh`, `dAGC`, 
+`errors`, `#obs` at every grid cell: 
 
-single_crossover_file    --> single_grid
-multiple_crossover_files --> multiple_grids
+1) single_crossover_file --> single_grid
+2) multiple_crossover_files --> multiple_grids
 
 Notes
 -----
+* Read HDF5 files with a 2D array called `data`
 * Process one satellite at a time and merge the files later on.
-* indices: i,j,k = t,x,y
+* Indices: i,j,k = t,y,x
 
 Example
 -------
-$ python xover2grid.py ~/data/fris/xover/seasonal/ers1_199*_tide.h5
+$ python xover2grid.py -r -100 -20 -82 -75 -s fris_grids.h5 ~/data/fris/xover/seasonal/ers1_*_tide.h5
 
 """
 # Fernando Paolo <fpaolo@ucsd.edu>
 # December 15, 2011
 
 import argparse as ap
+from mpl_toolkits.basemap import interp
+from scipy.interpolate import griddata, RectBivariateSpline
+from scipy.ndimage import gaussian_filter
 
 from funcs import *
 
 # global variables
 #-------------------------------------------------------------------------
 
-ABSVAL = 10  # (m) to edit abs(dh)
-MAX_SIZE_DATA = 512  # (MB) to load data in memory
+PLOT = False
+SAVE_TO_FILE = True
+
+NODE_NAME = ''
+STRUCT = 'gla'        # data structure: None/gla, use gla for Envi/ICESat comparison
+ABS_VAL = 10          # (m), accept data if |dh| < ABS_VAL
+NUM_STD = 3           # sigma for editing: accept if |dh| < NUM_STD * std
+ITERATIVE = True      # iterative sigma editing
+MEDIAN = True         # use median (instead of mean) for weighted avrg: [w1*m(x1) + w2*m(x2)]/(w1+w2)
+USEALL = True         # use one of the average/median <ad> or <da> if the other is missing
+MAX_SIZE_DATA = 512   # (MB), to load data in memory
+TIDE_CODE = 'fortran' # for tide computed using fortran/matlab
+GAUSS_SMOOTH = False  # for plotting
+GAUSS_WIDTH = 0.3
 
 #-------------------------------------------------------------------------
 
@@ -42,7 +58,11 @@ parser.add_argument('-d', dest='delta', nargs=2, type=float,
     metavar=('dx', 'dy'), default=(1.2, 0.4),
     help='size of grid cells: dx dy (deg) [default: 1.2 x 0.4]')
 parser.add_argument('-o', dest='fname_out', default=None,
-    help='output file name [default: /input/path/sat_tmin_tmax_dh_grids.h5]')
+    help='output file name [default: /input/path/sat_tmin_tmax_grids.h5]')
+parser.add_argument('-p', dest='prefix', default=None,
+    help='prefix of output file [default: same as input]')
+parser.add_argument('-s', dest='suffix', default='grids.h5',
+    help='suffix of output file [default: grids.h5]')
 
 args = parser.parse_args()
 
@@ -52,180 +72,184 @@ def main(args):
     #---------------------------------------------------------------------
 
     files = args.files
-    x_range = (args.region[0], args.region[1])
-    y_range = (args.region[2], args.region[3])
+    fname_out = args.fname_out
+    region = args.region
+    x_range = region[:2]
+    y_range = region[2:]
     dx = args.delta[0]
     dy = args.delta[1]
+    prefix = args.prefix
+    suffix = args.suffix
+    N = len(files)
 
     files.sort(key=lambda s: re.findall('\d\d\d\d\d\d+', s))
 
-    fname_out = args.fname_out
-    fname_out = get_fname_out(files, fname_out=fname_out, sufix='dh_grids.h5')
-
-    # generate *one* set of grids *per file*
-    #---------------------------------------------------------------------
+    print 'processing files ...'
 
     isfirst = True
     for pos, fname in enumerate(files):
 
-        file_in = tb.openFile(fname)
-        check_if_can_be_loaded(file_in.root.data, MAX_SIZE_DATA)
-        data = file_in.root.data.read()      # in-memory --> faster!
+        In = Input(fname)
+        In.get_time_from_fname()   # get sat/time info for every grid
+        d = In.get_data_from_file(MAX_SIZE_DATA, TIDE_CODE, data=STRUCT)
 
-        # get sat/time info for every grid
-        sat_name, ref_time, year, month = get_time_from_fname(fname)  
+        # pre-processing
+        #-----------------------------------------------------------------
 
-        # (1) FILTER DATA FIRST
+        # convert -180/+180 <-> 0/360 if needed
+        d['lon'] = lon_180_to_360(d['lon'], region)
 
-        d = {}
-        d['fmode1'] = data[:,10]
-        d['fmode2'] = data[:,11]
-        d['fbord1'] = data[:,18]
-        d['fbord2'] = data[:,19]
+        # filter data
+        d = filter_data(d)
 
-        '''
-        condition = ((d['fmode1'] == d['fmode2']) & \
-                     (d['fbord1'] == 0) & (d['fbord2'] == 0)) 
-        '''
-        if sat_name == 'ers1' or sat_name == 'ers2':
-            condition = ((d['fmode1'] == 1) & (d['fmode2'] == 1) & \
-                         (d['fbord1'] == 0) & (d['fbord2'] == 0))  # ice mode
-        elif sat_name == 'envisat' or sat_name == 'geosat' or sat_name == 'gfo':
-            condition = ((d['fmode1'] == 0) & (d['fmode2'] == 0) & \
-                         (d['fbord1'] == 0) & (d['fbord2'] == 0))  # fine mode/ocean mode
-
-        ind, = np.where(condition)
-
-        if len(ind) < 1:    # go to next file
-            file_in.close()
+        # go to next file. A "void" will be left in the 3D array!
+        if d is None:   
+            In.fin.close()
             continue
 
-        data = data[ind,:]
-
-        d['lon'] = data[:,0]
-        d['lat'] = data[:,1]
-        d['h1'] = data[:,6]
-        d['h2'] = data[:,7]
-        d['g1'] = data[:,8]
-        d['g2'] = data[:,9]
-        d['ftrack1'] = data[:,20]
-        d['ftrack2'] = data[:,21]
-        d['tide1'] = data[:,24]
-        d['tide2'] = data[:,25]
-        d['load1'] = data[:,26]
-        d['load2'] = data[:,27]
-
-        # (2) APPLY CORRECTIONS 
-
-        d = apply_tide_and_load_corr(d)
-
-        del data, d['fmode1'], d['fmode2'], d['fbord1'], d['fbord2']
-        del d['tide1'], d['tide2'], d['load1'], d['load2']
+        # apply corrections 
+        d = apply_tide_corr(d, TIDE_CODE)
 
         # digitize lons and lats
-        #-----------------------------------------------------------------
+        lon, lat, j_bins, i_bins, x_edges, y_edges, nx, ny = \
+            digitize(d['lon'], d['lat'], x_range, y_range, dx, dy)
 
-        x_edges = np.arange(x_range[0], x_range[-1]+dx, dx)
-        y_edges = np.arange(y_range[0], y_range[-1]+dy, dy)
-        j_bins = np.digitize(d['lon'], bins=x_edges)
-        k_bins = np.digitize(d['lat'], bins=y_edges)
-        nx, ny = len(x_edges)-1, len(y_edges)-1
-        hx, hy = dx/2., dy/2.
-        lon = (x_edges + hx)[:-1]
-        lat = (y_edges + hy)[:-1]
+        h1, h2 = d['h1'], d['h2']
+        g1, g2 = d['g1'], d['g2']
+        ftrk1, ftrk2 = d['ftrk1'], d['ftrk2']
 
-        # output grids 
-        #-----------------------------------------------------------------
-
-        dh_mean = np.empty((ny,nx), 'f8') * np.nan
-        dh_error = np.empty_like(dh_mean) * np.nan
-        dg_mean = np.empty_like(dh_mean) * np.nan
-        dg_error = np.empty_like(dh_mean) * np.nan
-        n_ad = np.empty((ny,nx), 'i4')
-        n_da = np.empty_like(n_ad)
+        # Output grids 
+        g = OutGrids(ny, nx)
 
         # calculations per grid cell
         #-----------------------------------------------------------------
 
-        for k in xrange(ny):
+        for i in xrange(ny):
             for j in xrange(nx):
                 '''
-                ind, = np.where((x_edges[j] <= d['lon']) & \
-                                (d['lon'] < x_edges[j+1]) & \
-                                (y_edges[k] <= d['lat']) & \
-                                (d['lat'] < y_edges[k+1]))
+                i_cell, = np.where((x_edges[j] <= d['lon']) & \
+                                   (d['lon'] < x_edges[j+1]) & \
+                                   (y_edges[i] <= d['lat']) & \
+                                   (d['lat'] < y_edges[i+1]))
                 '''
                 # single grid cell
-                ind, = np.where((j_bins == j+1) & (k_bins == k+1))
+                i_cell, = np.where((j_bins == j+1) & (i_bins == i+1))
 
-                ### dh time series
+                # xovers per cell 
+                dh = h2[i_cell] - h1[i_cell]    # always t2 - t1 !
+                dg = g2[i_cell] - g1[i_cell]
 
-                # separate --> asc/des, des/asc 
-                dh_ad, dh_da = compute_dh_ad_da(d['h1'][ind], d['h2'][ind], 
-                               d['ftrack1'][ind], d['ftrack2'][ind])
+                # separate in asc/des--des/asc 
+                i_ad, i_da = where_ad_da(ftrk1[i_cell], ftrk2[i_cell])
+                dh_ad = dh[i_ad]
+                dh_da = dh[i_da]
+                dg_ad = dg[i_ad]
+                dg_da = dg[i_da]
 
                 # filter
-                #dh_ad = std_iterative_editing(dh_ad, nsd=3)
-                #dh_da = std_iterative_editing(dh_da, nsd=3)
-                dh_ad = abs_value_editing(dh_ad, absval=ABSVAL)
-                dh_da = abs_value_editing(dh_da, absval=ABSVAL)
+                i_ad = abs_editing(dh_ad, absval=ABS_VAL, return_index=True)
+                i_da = abs_editing(dh_da, absval=ABS_VAL, return_index=True)
+                dh_ad = dh_ad[i_ad]
+                dh_da = dh_da[i_da]
+                dg_ad = dg_ad[i_ad]
+                dg_da = dg_da[i_da]
+
+                i_ad = std_editing(dh_ad, nsd=NUM_STD, iterative=ITERATIVE, return_index=True)
+                i_da = std_editing(dh_da, nsd=NUM_STD, iterative=ITERATIVE, return_index=True)
+                if len(i_ad) == 0 and len(i_da) == 0:
+                    pass
+                else:
+                    dh_ad = dh_ad[i_ad]
+                    dh_da = dh_da[i_da]
+                    dg_ad = dg_ad[i_ad]
+                    dg_da = dg_da[i_da]
 
                 # mean values
-                #dh_mean[k,j] = compute_ordinary_mean(dh_ad, dh_da, useall=False) 
-                dh_mean[k,j] = compute_weighted_mean(dh_ad, dh_da, useall=False) 
-                dh_error[k,j] = compute_weighted_mean_error(dh_ad, dh_da, useall=False) 
-                #dh_error[k,j] = compute_wingham_error(dh_ad, dh_da, useall=False) 
-                n_ad[k,j] = len(dh_ad)
-                n_da[k,j] = len(dh_da)
+                #g.dh_mean[i,j] = compute_ordinary_mean(dh_ad, dh_da, useall=USEALL) 
+                g.dh_mean[i,j] = compute_weighted_mean(dh_ad, dh_da, useall=USEALL, median=MEDIAN) 
+                g.dh_error[i,j] = compute_weighted_mean_error(dh_ad, dh_da, useall=USEALL) 
+                g.dh_error2[i,j] = compute_wingham_mod_error(dh_ad, dh_da, useall=USEALL) 
+                g.dg_mean[i,j] = compute_weighted_mean(dg_ad, dg_da, useall=USEALL, median=MEDIAN) 
+                g.dg_error[i,j] = compute_weighted_mean_error(dg_ad, dg_da, useall=USEALL) 
+                g.dg_error2[i,j] = compute_wingham_mod_error(dg_ad, dg_da, useall=USEALL) 
+                g.n_ad[i,j], g.n_da[i,j] = compute_num_obs(dh_ad, dh_da, useall=USEALL)
 
-                ### dAGC time series
-
-                dg_ad, dg_da = compute_dh_ad_da(d['g1'][ind], d['g2'][ind], 
-                               d['ftrack1'][ind], d['ftrack2'][ind])
-
-                #dg_ad = std_iterative_editing(dg_ad, nsd=3)
-                #dg_da = std_iterative_editing(dg_da, nsd=3)
-
-                dg_mean[k,j] = compute_weighted_mean(dg_ad, dg_da, useall=False) 
-                dg_error[k,j] = compute_weighted_mean_error(dg_ad, dg_da, useall=False) 
+                # gaussian smooth
+                if GAUSS_SMOOTH:
+                    g.dh_mean = gaussian_filter(g.dh_mean, GAUSS_WIDTH)
+                    g.dg_mean = gaussian_filter(g.dg_mean, GAUSS_WIDTH)
 
         # save the grids
         #-----------------------------------------------------------------
 
+        if not SAVE_TO_FILE: 
+            In.fin.close()
+            continue
+
         if isfirst:
-            # open or create output file
-            isfirst = False
-            atom = tb.Atom.from_dtype(dh_mean.dtype)
-            nk, nj = dh_mean.shape    # ny,nx
-            dout, file_out = create_output_containers(fname_out, atom, (nj,nk))
+            Out = Output(files, fname_out, g.dh_mean, (N,ny,nx), NODE_NAME, prefix, suffix)
+            Out.get_fname_out()
+            Out.create_output_containers()
 
             # save info
-            dout['x_edges'][:] = x_edges
-            dout['y_edges'][:] = y_edges
-            dout['lon'][:] = lon
-            dout['lat'][:] = lat
+            n = 0
+            Out.lon[:] = lon
+            Out.lat[:] = lat
+            Out.x_edges[:] = x_edges
+            Out.y_edges[:] = y_edges
 
-        # append one set of grids per file
-        dout['table'].append([(sat_name, ref_time, year, month)]) ### test row.append() instead!
-        dout['dh_mean'].append(dh_mean.reshape(1, nj, nk))
-        dout['dh_error'].append(dh_error.reshape(1, nj, nk))
-        dout['dg_mean'].append(dg_mean.reshape(1, nj, nk))
-        dout['dg_error'].append(dg_error.reshape(1, nj, nk))
-        dout['n_ad'].append(n_ad.reshape(1, nj, nk))
-        dout['n_da'].append(n_da.reshape(1, nj, nk))
-        dout['table'].flush()
+            isfirst = False
 
-        file_in.close()
+        # save one set of grids per iteration (i.e., per file)
+        # --> test row.append() instead!
+        Out.table.append([(d['satname'], d['time1'], d['time2'])]) 
+        Out.table.flush()
+        Out.dh_mean[n,...] = g.dh_mean
+        Out.dh_error[n,...] = g.dh_error
+        Out.dh_error2[n,...] = g.dh_error2
+        Out.dg_mean[n,...] = g.dg_mean
+        Out.dg_error[n,...] = g.dg_error
+        Out.dg_error2[n,...] = g.dg_error2
+        Out.n_ad[n,...] = g.n_ad
+        Out.n_da[n,...] = g.n_da
+        n += 1
 
-    file_out.flush()
-    file_out.close()
+        In.fin.close()
 
-    print_info(x_edges, y_edges, lon, lat, dx, dy)
+    if SAVE_TO_FILE:
+        Out.fout.flush()
+        Out.fout.close()
 
-    plot_grids(x_edges, y_edges, dh_mean, dg_mean, n_ad, n_da)
-    plt.show()
+    try:
+        print_info(x_edges, y_edges, lon, lat, dx, dy, n, source='None')
+    except:
+        print_info(x_edges, y_edges, lon, lat, dx, dy, 1, source='None')
 
-    print 'file out -->', fname_out
+    if PLOT:
+        '''
+        xx, yy = np.meshgrid(lon, lat)     # Output grid
+        ind = np.where(np.isnan(g.dh_mean))
+        g.dh_mean[ind] = 0 # cannot have NaNs or be a masked array for `order=3`
+
+        g.dh_mean = interp(g.dh_mean, lon, lat, xx, yy, order=1)       # good!!!
+
+        rbs = RectBivariateSpline(lat, lon, g.dh_mean, kx=3, ky=3)
+        g.dh_mean = rbs(lat, lon)
+
+        x = xx.ravel()
+        y = yy.ravel()
+        z = g.dh_mean.ravel()
+        g.dh_mean = griddata((x, y), z, (lon[None,:], lat[:,None]), method='cubic') 
+
+        g.dh_mean = gaussian_filter(dh_mean, 0.5, order=0, Output=None, mode='reflect', cval=0.0)
+
+        g.dh_mean[ind] = np.nan
+        '''
+        plot_grids(x_edges, y_edges, g.dh_mean, g.dg_mean, g.n_ad, g.n_da)
+        plt.show()
+
+    if SAVE_TO_FILE:
+        print 'file out -->', Out.fname_out
 
 
 if __name__ == '__main__':
