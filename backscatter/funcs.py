@@ -416,7 +416,7 @@ def plot_ts(time2, lon, lat, dh_mean_cor, dh_mean, dg_mean, R, S, diff=True):
         plt.legend(loc=2).draw_frame(False)
         plt.xlabel('dAGC (dB)')
         plt.ylabel('dh (m)')
-        plt.title('Mix-term sensitivity')
+        plt.title('Mixed-term sensitivity')
     else:
         dh_mean2 = np.diff(dh_mean)
         dg_mean2 = np.diff(dg_mean)
