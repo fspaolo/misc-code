@@ -6,7 +6,10 @@ python mergesats2.py /data/alt/ra/ers1/hdf/antarctica/xovers/*_mts.h5 /data/alt/
 
 Notes
 -----
-Output file is saved in the first path of the argument list.
+- Output file is saved in the first path of the argument list.
+- Check in the code the variables to merge and add new ones, also check:
+    - GetData()
+    - OutputContainer()
 
 """
 # Fernando Paolo <fpaolo@ucsd.edu>
@@ -107,6 +110,10 @@ def main(args):
         dout.dg_error2[n1:n2,...] = din.dg_error2[:nt]
         dout.n_ad[n1:n2,...] = din.n_ad[:nt]
         dout.n_da[n1:n2,...] = din.n_da[:nt]
+        try:
+            dout.dh_mean_mixed_const[n1:n2,...] = din.dh_mean_mixed_const[:nt]
+        except:
+            pass
         try:
             dout.dh_mean_short_const[n1:n2,...] = din.dh_mean_short_const[:nt]
         except:

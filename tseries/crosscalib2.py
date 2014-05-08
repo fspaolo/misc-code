@@ -14,6 +14,10 @@ Example
 python crosscalib2.py \
         /data/alt/ra/ers1/hdf/antarctica/xovers/all_19920716_20111015_shelf_tide_grids_mts.h5
 
+Notes
+-----
+To speed up the process move the file to be read to a local dir. 
+
 """
 # Fernando Paolo <fpaolo@ucsd.edu>
 # March 8, 2012
@@ -27,15 +31,15 @@ from funcs import *
 # global variables
 #-------------------------------------------------------------------------
 
-PLOT = False
-SAVE_TO_FILE = True
+PLOT = True
+SAVE_TO_FILE = False
 SAT_NAMES = ['ers1', 'ers2', 'envi']  # important for the order!
-VAR_TO_CALIBRATE = 'dh_mean'
-VAR_CALIBRATED = 'dh_mean_xcal'
+#VAR_TO_CALIBRATE = 'dh_mean'
+#VAR_CALIBRATED = 'dh_mean_xcal'
 #VAR_TO_CALIBRATE = 'dg_mean'
 #VAR_CALIBRATED = 'dg_mean_xcal'
-#VAR_TO_CALIBRATE = 'dh_mean_mixed_const'
-#VAR_CALIBRATED = 'dh_mean_mixed_const_xcal'
+VAR_TO_CALIBRATE = 'dh_mean_mixed_const'
+VAR_CALIBRATED = 'dh_mean_mixed_const_xcal'
 #VAR_TO_CALIBRATE = 'dh_mean_short_const'
 #VAR_CALIBRATED = 'dh_mean_short_const_xcal'
 

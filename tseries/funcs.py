@@ -52,6 +52,10 @@ class GetData(object):
         self.n_ad = fin.getNode('/n_ad')[:]
         self.n_da = fin.getNode('/n_da')[:]
         try:
+            self.dh_mean_mixed_const = fin.getNode('/dh_mean_mixed_const')[:]
+        except:
+            pass
+        try:
             self.dh_mean_short_const = fin.getNode('/dh_mean_short_const')[:]
         except:
             pass
@@ -96,6 +100,9 @@ class OutputContainers(object):
         self.n_da = fout.createCArray('/', 'n_da', atom, (nt,ny,nx), 
             title, filters, chunkshape=chunkshape)
         # this is craeted the first time the class is instantiated!!!
+        self.dh_mean_mixed_const = fout.createCArray('/', 
+                'dh_mean_mixed_const', atom, (nt,ny,nx), 
+                title, filters, chunkshape=chunkshape)
         self.dh_mean_short_const = fout.createCArray('/', 
                 'dh_mean_short_const', atom, (nt,ny,nx), 
                 title, filters, chunkshape=chunkshape)
