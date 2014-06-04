@@ -87,101 +87,8 @@ BIAS_B = {'20031027': (-0.0125, 0.025), # 2a
           '20091006': (0, 0)}           # 2f
 
 
-class Input(object):
-    def __init__(self, fname):
-        self.fname_in = fname
-
-    def get_time_from_fname(self):
-        """
-        Get satellite name, times 1 and 2 of elevation change 
-        interval from the input file name.
-        """
-        fname = self.fname_in
-        satname, time1 = os.path.basename(fname).split('_')[:2]
-        t1, t2 = re.findall('\d\d\d\d\d\d+', fname) 
-        self.camp1 = t1
-        self.camp2 = t2
-        self.time1 = np.int32(t1)
-        self.time2 = np.int32(t2)
-        self.satname = satname
-        '''
-        year, month, day = np.int32(t2[:4]), np.int32(t2[4:6]), np.int32(t2[6:8])
-        print dt.date(year, month, day).isoformat()
-        date = '%.4d-%.2d-15' % (year, month)
-        time1 = '%s-%s-15' % (time1[:4], time1[4:6])
-        self.time1 = time1
-        self.date = date
-        self.year = year + (month - 0.5)/12.  # decimal years (for midle of a month)
-        self.month = month
-        '''
-
-    def get_data_from_file(self, max_size_data, tide_code, struct=None):
-        fin = tb.openFile(self.fname_in)
-        self._check_if_can_be_loaded(fin.root.data, max_size_data)
-        data = fin.root.data.read()      # in-memory --> faster!
-        self.fin = fin
-        d = {}
-        d['satname'] = self.satname
-        d['lon'] = data[:,0]
-        d['lat'] = data[:,1]
-        d['time1'] = self.time1   # from fname
-        d['time2'] = self.time2
-        d['h1'] = data[:,6]
-        d['h2'] = data[:,7]
-        d['g1'] = data[:,8]
-        d['g2'] = data[:,9]
-        d['fmode1'] = data[:,10]
-        d['fmode2'] = data[:,11]
-        d['fmask1'] = data[:,16]
-        d['fmask2'] = data[:,17]
-        d['fbord1'] = data[:,18]
-        d['fbord2'] = data[:,19]
-        d['ftrk1'] = data[:,22]
-        d['ftrk2'] = data[:,23]
-        d['tide1'] = data[:,24]   # tide + load
-        d['tide2'] = data[:,25]
-        if struct is not None:
-            d['camp1'] = self.camp1   # from fname
-            d['camp2'] = self.camp2
-        '''
-        if tide_code == 'matlab':
-            d['load1'] = data[:,26]  # not needed if using OTPS Fortran:
-            d['load2'] = data[:,27]  # load corr is already in `tide` corr
-        '''
-        return d
-
-    def _get_size(self, arr):
-        """
-        Get the size in MB of a Numpy or PyTables object.
-
-        parameters
-        ----------
-        arr : 1D/2D Numpy or PyTables Array.
-        """
-        try:
-            m, n = arr.shape
-        except:
-            m, n = arr.shape, 1
-        num_elem = m*n
-        item_size = arr.dtype.itemsize
-        return (item_size*num_elem/1e6)
-
-    def _check_if_can_be_loaded(self, data, max_size=512):
-        """
-        Check if PyTables Array can be loaded in memory.
-        """
-        if self._get_size(data) > max_size:
-            msg = 'data is larger than %d MB, not loading in-memory!' \
-                % max_size
-            raise MemoryError(msg)
-        else:
-            return True
-
-
 class OutGrids(object):
     def __init__(self, ny, nx):
-        self.ny = ny
-        self.nx = nx
         self.dh_mean = np.zeros((ny,nx), 'f8') * np.nan
         self.dh_error = np.zeros_like(self.dh_mean) * np.nan
         self.dh_error2 = np.zeros_like(self.dh_mean) * np.nan
@@ -192,108 +99,86 @@ class OutGrids(object):
         self.n_da = np.zeros_like(self.dh_mean) * np.nan
 
 
-class TimeSeriesGrid(tb.IsDescription):
-    satname = tb.StringCol(20, pos=1)
-    time1 = tb.Int32Col(pos=2)
-    time2 = tb.Int32Col(pos=3)
-
-
-class Output(object):
-    def __init__(self, files_in, fname_out, any_data, (nt,ny,nx), node_name,
-        prefix, suffix):
-        self.files_in = files_in
-        self.fname_out = fname_out
-        self.any_data = any_data
-        self.shape = (nt,ny,nx)
-        self.node_name = node_name
-        self.prefix = prefix
-        self.suffix = suffix
-
-    def get_fname_out(self):
-        """
-        Construct the output file name with the min and max times 
-        from the input files.
-        """
-        files = self.files_in
-        if len(files) == 1:
-            fname_in = files[0]
-            self.fname_out = fname_in.replace('.h5', '_grid.h5')
-        else:
-            fname_out = self.fname_out
-            prefix = self.prefix
-            suffix = self.suffix
-            path, name = os.path.split(files[0])  # path from any file
-            if fname_out is None:
-                times = [re.findall('\d\d\d\d\d\d+', fname) for fname in files]
-                t_1 = [dt.datetime.strptime(t1, '%Y%m%d') for t1, t2 in times]
-                t_2 = [dt.datetime.strptime(t2, '%Y%m%d') for t1, t2 in times]
-                t_min = min(t_1).strftime('%Y%m%d')
-                t_max = max(t_2).strftime('%Y%m%d')
-                #t_1 = [t1 for t1, t2 in times]
-                #t_2 = [t2 for t1, t2 in times]
-                if prefix is None:
-                    prefix = name.split('_')[0]   # sat name
-                name = '_'.join([prefix, t_min, t_max, suffix])
-            else:
-                name = fname_out
-            self.fname_out = os.path.join(path, name)
-
-    def create_output_containers(self):
-        # open or create output file
-        fout = tb.openFile(self.fname_out, 'w')
+class OutputContainers(object):
+    def __init__(self, fname_out, shape):
+        f = tb.openFile(fname_out, 'w')
+        nt, ny, nx = shape
         filters = tb.Filters(complib='zlib', complevel=9)
-        atom = tb.Atom.from_dtype(self.any_data.dtype)
-        N, ny, nx = self.shape
-        chunkshape = (1,ny,nx)  # chunk = slab to be saved
-        title = ''
-        self.fout = fout
-        if self.node_name:
-            g = fout.createGroup('/', self.node_name)
-        else:
-            g = '/'
-        #self.table = fout.createTable(g, 'table', TimeSeriesGrid, title, filters)
-        self.time1 = fout.createCArray(g, 'time1', atom, (N,), title, filters)
-        self.time2 = fout.createCArray(g, 'time2', atom, (N,), title, filters)
-        self.lon = fout.createCArray(g, 'lon', atom, (nx,), title, filters)
-        self.lat = fout.createCArray(g, 'lat', atom, (ny,), title, filters)
-        self.x_edges = fout.createCArray(g, 'x_edges', atom, (nx+1,), title, filters)
-        self.y_edges = fout.createCArray(g, 'y_edges', atom, (ny+1,), title, filters)
-        self.dh_mean = fout.createCArray(g, 'dh_mean', atom, (N,ny,nx), title, 
-            filters, chunkshape=chunkshape)
-        self.dh_error = fout.createCArray(g, 'dh_error', atom, (N,ny,nx), title, 
-            filters, chunkshape=chunkshape)
-        self.dh_error2 = fout.createCArray(g, 'dh_error2', atom, (N,ny,nx), title, 
-            filters, chunkshape=chunkshape)
-        self.dg_mean = fout.createCArray(g, 'dg_mean', atom, (N,ny,nx), title, 
-            filters, chunkshape=chunkshape)
-        self.dg_error = fout.createCArray(g, 'dg_error', atom, (N,ny,nx), title, 
-            filters, chunkshape=chunkshape)
-        self.dg_error2 = fout.createCArray(g, 'dg_error2', atom, (N,ny,nx), title, 
-            filters, chunkshape=chunkshape)
-        self.n_ad = fout.createCArray(g, 'n_ad', atom, (N,ny,nx), title, 
-            filters, chunkshape=chunkshape)
-        self.n_da = fout.createCArray(g, 'n_da', atom, (N,ny,nx), title, 
-            filters, chunkshape=chunkshape)
+        atom = tb.Atom.from_type('float64', dflt=np.nan)  # dflt is important!
+        self.time1 = f.createCArray('/', 'time1', atom, (nt,), '', filters)
+        self.time2 = f.createCArray('/', 'time2', atom, (nt,), '', filters)
+        self.lon = f.createCArray('/', 'lon', atom, (nx,), '', filters)
+        self.lat = f.createCArray('/', 'lat', atom, (ny,), '', filters)
+        self.x_edges = f.createCArray('/', 'x_edges', atom, (nx+1,), '', filters)
+        self.y_edges = f.createCArray('/', 'y_edges', atom, (ny+1,), '', filters)
+        self.dh_mean = f.createCArray('/', 'dh_mean', atom, (nt,ny,nx), '', filters)
+        self.dh_error = f.createCArray('/', 'dh_error', atom, (nt,ny,nx), '', filters)
+        self.dh_error2 = f.createCArray('/', 'dh_error2', atom, (nt,ny,nx), '', filters)
+        self.dg_mean = f.createCArray('/', 'dg_mean', atom, (nt,ny,nx), '', filters)
+        self.dg_error = f.createCArray('/', 'dg_error', atom, (nt,ny,nx), '', filters)
+        self.dg_error2 = f.createCArray('/', 'dg_error2', atom, (nt,ny,nx), '', filters)
+        self.n_ad = f.createCArray('/', 'n_ad', atom, (nt,ny,nx), '', filters)
+        self.n_da = f.createCArray('/', 'n_da', atom, (nt,ny,nx), '', filters)
+        self.file = f
 
 
-def lon_180_to_360(lon, region):
-    l, r, b, t = region
-    if l < 0:
-        lon[lon>180] -= 360  # 360 -> 180
-    elif r > 180:
-        lon[lon<0] += 360    # 180 -> 360
-    return lon
+def close_files():
+    for fid in tb.file._open_files.values():
+        fid.close() 
 
 
-def filter_data(d):
+def get_data(fname, tide_code='fortran'):
+    """Load data from file (with datamatrix)."""
+    f = tb.openFile(fname)
+    data = f.root.data[:]         # in-memory -> faster!
+    d = {}
+    d['lon'] = data[:,0]
+    d['lat'] = data[:,1]
+    d['h1'] = data[:,6]
+    d['h2'] = data[:,7]
+    d['g1'] = data[:,8]
+    d['g2'] = data[:,9]
+    d['fmode1'] = data[:,10]
+    d['fmode2'] = data[:,11]
+    d['fmask1'] = data[:,16]
+    d['fmask2'] = data[:,17]
+    d['fbord1'] = data[:,18]
+    d['fbord2'] = data[:,19]
+    d['ftrk1'] = data[:,22]
+    d['ftrk2'] = data[:,23]
+    d['tide1'] = data[:,24]       # tide + load
+    d['tide2'] = data[:,25]
+    if tide_code == 'matlab':
+        d['tide1'] += data[:,26]  # add load
+        d['tide2'] += data[:,27]
+    f.close()
+    del data
+    return d
+
+
+def get_info(fname):
+    """Get 'satname', 'time1', 'time2' from file name."""
+    satname = os.path.basename(fname).split('_')[0]
+    time1, time2 = re.findall('\d\d\d\d\d\d+', fname) 
+    return satname, np.int32(time1), np.int32(time2)
+
+
+def filter_data(d, ice_only=True):
     # d is a dictionary containing all the data
     # mode: 0/1/2 = ocean/ice/none (for all RA), fine/medium/coarse (for Envi)
     # border: 0/1 = no/yes
     # tide: -9999 = outside boundary or land
-    cond1 = (d['fmode1'] == 1) & (d['fmode2'] == 1)  # ice-mode
+    cond_a = (d['fmode1'] == 0) & (d['fmode2'] == 0)  # ocean-mode
+    cond_b = (d['fmode1'] == 1) & (d['fmode2'] == 1)  # ice-mode
+    if ice_only:
+        cond1 = cond_b
+    else:
+        cond1 = (cond_a | cond_b)
+
     cond2 = (d['fmode1'] == 0) & (d['fmode2'] == 0)  # fine-mode
     cond3 = (d['fbord1'] == 0) & (d['fbord2'] == 0)
     cond4 = (d['tide1'] != -9999) & (d['tide2'] != -9999)
+
     if d['satname'] in ['ers1', 'ers2']:
         ind, = np.where( cond1 & cond3 & cond4 )
     elif d['satname'] in ['envi']:
@@ -305,71 +190,12 @@ def filter_data(d):
         d = None                    # no points left
     else:
         for k in d.keys():
-            try:
-                d[k] = d[k][ind,:]  # filter
-            except:
+            if np.ndim(d[k]) > 0:
+                d[k] = d[k][ind]  # filter
+                #print 'V filtering', k
+            else:
+                #print 'X not filtering', k
                 pass
-    return d
-
-
-"""
-# original function: DEPRECATED
-def filter_data(d):
-    # d is a dictionary containing all the data
-    # mode: 0/1/2 = ocean/ice/none (for all RA), fine/medium/coarse (for Envi)
-    # border: 0/1 = no/yes
-    # tide: -9999 = outside boundary or land
-    satname = d['satname']
-    if satname in ['ers1', 'ers2']:
-        condition = ((d['fmode1'] == 1) & (d['fmode2'] == 1) & \
-                     (d['fbord1'] == 0) & (d['fbord2'] == 0) & \
-                     (d['tide1'] != -9999) & (d['tide2'] != -9999))  
-    elif satname in ['envisat', 'envi', 'geo', 'gfo']:
-        condition = ((d['fmode1'] == 0) & (d['fmode2'] == 0) & \
-                     (d['fbord1'] == 0) & (d['fbord2'] == 0) & \
-                     (d['fmask1'] == 4) & (d['fmask2'] == 4) & \
-                     (d['tide1'] != -9999) & (d['tide2'] != -9999))  
-    elif satname in ['icesat', 'ice']:
-        condition = ((d['fbord1'] == 0) & (d['fbord2'] == 0) & \
-                     (d['fmask1'] == 4) & (d['fmask2'] == 4) & \
-                     (d['tide1'] != -9999) & (d['tide2'] != -9999))  
-    else:
-        print 'do not recognize `satname`:', satname
-        sys.exit()
-    ind, = np.where(condition)
-    if len(ind) < 1:
-        d = None                    # no points left
-    else:
-        for k in d.keys():
-            try:
-                d[k] = d[k][ind,:]  # filter
-            except:
-                pass
-    '''
-    print 'initial data points:', len(d['lon'])
-    print 'filtered data points:', len(ind)
-    '''
-    return d
-"""
-
-
-def apply_tide_corr(d, tide_code):
-    """
-    The sign of the correction is the same (subtract), but the phase of the
-    load tide is ~180 degrees off the ocean tide. E.g., if the ocean tide at
-    (t,x,y) is +1.0 m, the load tide is probably -0.03 m (more or less), so
-    the correction equation would be:
-    
-    tide_free = measured - (+1.0) - (-0.03) = measured - (+0.97)
-    """
-    if tide_code == 'matlab':
-        d['h1'] = d['h1'] - d['tide1'] - d['load1']
-        d['h2'] = d['h2'] - d['tide2'] - d['load2']
-    elif tide_code == 'fortran':
-        d['h1'] = d['h1'] - d['tide1']
-        d['h2'] = d['h2'] - d['tide2']
-    else:
-        raise IOError('TIDE_CODE must be fortran/matlab: %s' % tide_code)
     return d
 
 

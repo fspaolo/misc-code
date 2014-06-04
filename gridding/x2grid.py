@@ -3,55 +3,47 @@
 Take crossover files as input and construct grids of average `dh`, `dAGC`, 
 `errors` and `n_obs` at every grid cell: 
 
-1) single_crossover_file --> single_grid
-2) multiple_crossover_files --> multiple_grids
-
 Notes
 -----
 - Reads HDF5 files with a 2d array named 'data' (a data matrix).
-- Process one sat *and* one subgrid at a time and merge the files later on.
-- Indices: i,j,k = t,y,x
+- Process one sat *and* one subgrid at a time and merge the files later on!
+- Dimensions are: i,j,k = t,y,x
 - All the SDs are calculated using N-1 (ddof=1)
 - It applies tide and load corrections
 - Do not use multiple modes! Use ERS-1/2 -> ice-mode, Envi -> fine-mode.
 - For mode selection edit 'filter_data()'
-- If processing several files in serial, use 'run.py' (see header)
 - Warning: without 'USEALL' several grid cells end up empty (in small/difficult regions).
 - To avoid Unix limitation on number of cmd args, pass instead of file names a
   string as "/path/to/data/file_*_name.ext"
 
 Example
 -------
-$ python x2grid.py -r 0 360 -82 -62 -d .25 .75 -n 10 \
-                   "/data/alt/ra/envi/hdf/antarctica/xovers/envi_*_tide.h5"
+$ python x2grid.py -r 0 360 -82 -62 -d .75 .25 -n 10 \
+                   "/data/alt/ra/ers1/hdf/antarctica/xovers/ers1_*_tide.h5"
 
 """
 # Fernando Paolo <fpaolo@ucsd.edu>
 # December 15, 2011
 
 import argparse as ap
+import altimpy as alt
 from glob import glob
-from mpl_toolkits.basemap import interp
-from scipy.interpolate import griddata, RectBivariateSpline
 from scipy.ndimage import gaussian_filter
-
 from funcs import *
 
 # global variables
 #-------------------------------------------------------------------------
 
-PLOT = True
-SAVE_TO_FILE = False
+PLOT = False
+SAVE_TO_FILE = True
 
-NODE_NAME = ''
-STRUCT = None         # data structure: None/'gla', use gla for Envi/ICESat comparison
 ABS_VAL = 15          # (m), accept data if |dh| < ABS_VAL
 NUM_STD = 3           # sigma for editing: accept if |dh| < NUM_STD * std
 ITERATIVE = False     # iterative sigma editing
 MEDIAN = True         # use median (instead of mean) for weighted avrg: [w1*M(x1) + w2*M(x2)]/(w1+w2)
 USEALL = True         # use one of the average/median <ad> or <da> if the other is missing
-MAX_SIZE_DATA = 512   # (MB), to load data in memory
-TIDE_CODE = 'fortran' # for tide computed using fortran or matlab code
+ICE_ONLY = True       # use ice-only mode, otherwise uses both ice + ocean
+TIDE_CODE = 'fortran' # for tide computed using 'fortran' or 'matlab' code
 GAUSS_SMOOTH = False  # for plotting only!
 GAUSS_WIDTH = 0.2
 
@@ -70,11 +62,9 @@ parser.add_argument('-d', dest='delta', nargs=2, type=float,
 parser.add_argument('-n', dest='nsectors', default=1, type=int,
     help='total number of sectors (sub-grids), default 1')
 parser.add_argument('-o', dest='fname_out', default=None,
-    help='output file name, default /input/path/sat_tmin_tmax_grids.h5')
-parser.add_argument('-p', dest='prefix', default=None,
-    help='prefix of output file, default same as input')
-parser.add_argument('-s', dest='suffix', default='grids.h5',
-    help='suffix of output file, default grids.h5')
+    help='output file name, default /input/path/fname_grid.h5')
+parser.add_argument('-s', dest='suffix', default='_grid.h5',
+    help="suffix of output file, default '_grid.h5'")
 args = parser.parse_args()
 
 def main(args):
@@ -84,8 +74,7 @@ def main(args):
     if len(args.files) > 1:
         files = args.files
     else:
-        # use 'glob' instead
-        files = glob(args.files[0])
+        files = glob(args.files[0])  # using 'glob'
 
     fname_out = args.fname_out
     region = args.region
@@ -94,9 +83,7 @@ def main(args):
     dx = args.delta[0]
     dy = args.delta[1]
     nsect = args.nsectors
-    prefix = args.prefix
     suffix = args.suffix
-    N = len(files)
 
     if nsect > 1:
         subdom = get_sub_domains(x_range[0], x_range[1], nsect)
@@ -104,36 +91,41 @@ def main(args):
     if len(files) > 1:
         files.sort(key=lambda s: re.findall('\d\d\d\d\d\d+', s))
 
-    print 'processing files ...'
+    print 'processing %d files...' % len(files)
 
-    isfirst = True
-    for pos, fname in enumerate(files):
+    for fname in files:
 
         if nsect > 1:
             sectnum = get_sect_num(fname) 
             x_range = subdom[sectnum]
 
-        In = Input(fname)
-        In.get_time_from_fname()   # get sat/time info for every grid
-        d = In.get_data_from_file(MAX_SIZE_DATA, TIDE_CODE, struct=STRUCT)
+        d = get_data(fname)
+        d['satname'], d['time1'], d['time2'] = get_info(fname)
 
         # pre-processing
         #-----------------------------------------------------------------
 
-        # convert -180/+180 <-> 0/360 if needed
-        d['lon'] = lon_180_to_360(d['lon'], region)
+        d['lon'] = alt.lon_180_360(d['lon'], region=region)
 
-        # filter data: select modes and "good" data points
-        d = filter_data(d)
+        # filter data -> select modes and "good" data points
+        d = filter_data(d, ice_only=ICE_ONLY)
 
-        # go to next file. A "void" will be left in the 3D array if no data!
+        # go to next file
         if d is None:   
             print 'No data left after filtering!\nFile:', fname
-            In.fin.close()
             continue
 
-        # apply corrections 
-        d = apply_tide_corr(d, TIDE_CODE)
+        # apply tide and load corrections
+        """
+        The sign of the correction is the same (subtract), but the phase of the
+        load tide is ~180 degrees off the ocean tide. E.g., if the ocean tide at
+        (t,x,y) is +1.0 m, the load tide is probably -0.03 m (more or less), so
+        the correction equation would be:
+        
+        tide_free = measured - (+1.0) - (-0.03) = measured - (+0.97)
+        """
+        d['h1'] -= d['tide1']
+        d['h2'] -= d['tide2']
 
         # digitize lons and lats (create the grid)
         lon, lat, j_bins, i_bins, x_edges, y_edges, nx, ny = \
@@ -194,7 +186,6 @@ def main(args):
                     dg_da = dg_da[i_da]
 
                 # mean values
-                #g.dh_mean[i,j] = compute_ordinary_mean(dh_ad, dh_da, useall=USEALL) 
                 g.dh_mean[i,j] = compute_weighted_mean(dh_ad, dh_da, useall=USEALL, median=MEDIAN) 
                 g.dh_error[i,j] = compute_weighted_error(dh_ad, dh_da, useall=USEALL) 
                 g.dh_error2[i,j] = compute_wingham_error(dh_ad, dh_da, useall=USEALL) 
@@ -208,86 +199,45 @@ def main(args):
                     g.dh_mean = gaussian_filter(g.dh_mean, GAUSS_WIDTH)
                     g.dg_mean = gaussian_filter(g.dg_mean, GAUSS_WIDTH)
 
-        # save the grids
-        #-----------------------------------------------------------------
+            # save the grids
+            #-----------------------------------------------------------------
 
-        if not SAVE_TO_FILE: 
-            In.fin.close()
-            continue
+            if SAVE_TO_FILE:
+                # save one set of grids per iteration (i.e., per file)
+                fname_out = fname.replace('.h5', suffix)
+                out = OutputContainers(fname_out, (1,ny,nx))
+                out.lon[:] = lon
+                out.lat[:] = lat
+                out.x_edges[:] = x_edges
+                out.y_edges[:] = y_edges
+                out.time1[:] = d['time1']
+                out.time2[:] = d['time2']
+                out.dh_mean[:] = g.dh_mean
+                out.dh_error[:] = g.dh_error
+                out.dh_error2[:] = g.dh_error2
+                out.dg_mean[:] = g.dg_mean
+                out.dg_error[:] = g.dg_error
+                out.dg_error2[:] = g.dg_error2
+                out.n_ad[:] = g.n_ad
+                out.n_da[:] = g.n_da
+                out.file.flush()
+                out.file.close()
 
-        if isfirst:
-            Out = Output(files, fname_out, g.dh_mean, (N,ny,nx), NODE_NAME, prefix, suffix)
-            Out.get_fname_out()
-            Out.create_output_containers()
-
-            # save info
-            n = 0
-            Out.lon[:] = lon
-            Out.lat[:] = lat
-            Out.x_edges[:] = x_edges
-            Out.y_edges[:] = y_edges
-
-            isfirst = False
-
-        # save one set of grids per iteration (i.e., per file)
-        # --> test row.append() instead!
-        #Out.table.append([(d['satname'], d['time1'], d['time2'])]) 
-        #Out.table.flush()
-        Out.time1[n] = d['time1']
-        Out.time2[n] = d['time2']
-        Out.dh_mean[n,...] = g.dh_mean
-        Out.dh_error[n,...] = g.dh_error
-        Out.dh_error2[n,...] = g.dh_error2
-        Out.dg_mean[n,...] = g.dg_mean
-        Out.dg_error[n,...] = g.dg_error
-        Out.dg_error2[n,...] = g.dg_error2
-        Out.n_ad[n,...] = g.n_ad
-        Out.n_da[n,...] = g.n_da
-        n += 1
-
-        In.fin.close()
-
-    try:
-        print_info(x_edges, y_edges, lon, lat, dx, dy, n, Out.n_ad, Out.n_da, source='None')
-    except:
         try:
             print_info(x_edges, y_edges, lon, lat, dx, dy, 1, g.n_ad, g.n_da, source='None')
         except:
             pass
-
-    if SAVE_TO_FILE:
-        Out.fout.flush()
-        Out.fout.close()
-
-    if PLOT:
-        '''
-        xx, yy = np.meshgrid(lon, lat)     # Output grid
-        ind = np.where(np.isnan(g.dh_mean))
-        g.dh_mean[ind] = 0 # cannot have NaNs or be a masked array for `order=3`
-
-        g.dh_mean = interp(g.dh_mean, lon, lat, xx, yy, order=1)       # good!!!
-
-        rbs = RectBivariateSpline(lat, lon, g.dh_mean, kx=3, ky=3)
-        g.dh_mean = rbs(lat, lon)
-
-        x = xx.ravel()
-        y = yy.ravel()
-        z = g.dh_mean.ravel()
-        g.dh_mean = griddata((x, y), z, (lon[None,:], lat[:,None]), method='cubic') 
-
-        g.dh_mean = gaussian_filter(dh_mean, 0.5, order=0, Output=None, mode='reflect', cval=0.0)
-
-        g.dh_mean[ind] = np.nan
-        '''
-        try:
-            plt.plot(d['lon'], d['lat'], '.')
-            plot_grids(x_edges, y_edges, g.dh_mean, g.dh_error, g.n_ad, g.n_da)
-            plt.show()
-        except:
-            print 'no data to plot!'
-
-    if SAVE_TO_FILE:
-        print 'file out -->', Out.fname_out
+        
+        if PLOT:
+            try:
+                plt.plot(d['lon'], d['lat'], '.')
+                plot_grids(x_edges, y_edges, g.dh_mean, g.dh_error, g.n_ad, g.n_da)
+                plt.show()
+            except:
+                print 'no data to plot!'
+        
+        if SAVE_TO_FILE:
+            print 'file out -->', fname_out, '\n'
 
 
 if __name__ == '__main__':
