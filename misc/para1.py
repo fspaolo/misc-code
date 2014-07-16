@@ -1,0 +1,427 @@
+try: paraview.simple
+except: from paraview.simple import *
+paraview.simple._DisableFirstRenderCameraReset()
+
+RenderView1 = CreateRenderView()
+RenderView1.LightSpecularColor = [1.0, 1.0, 1.0]
+RenderView1.InteractionMode = '3D'
+RenderView1.UseTexturedBackground = 0
+RenderView1.UseLight = 1
+RenderView1.CameraPosition = [0.2218243529039659, -12.99726677348665, 16.557664877350369]
+RenderView1.FillLightKFRatio = 3.0
+RenderView1.Background2 = [0.0, 0.0, 0.17254901960784313]
+RenderView1.FillLightAzimuth = -10.0
+RenderView1.LODResolution = 50.0
+RenderView1.BackgroundTexture = []
+RenderView1.HeadPose = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+RenderView1.KeyLightAzimuth = 10.0
+RenderView1.StencilCapable = 1
+RenderView1.LightIntensity = 1.0
+RenderView1.CameraFocalPoint = [-0.041592717170715304, -0.041592717170715325, 1.1571387648582458]
+RenderView1.ImageReductionFactor = 2
+RenderView1.CameraViewAngle = 30.0
+RenderView1.CameraParallelScale = 5.2092441975990216
+RenderView1.EyeAngle = 2.0
+RenderView1.HeadLightKHRatio = 3.0
+RenderView1.StereoRender = 0
+RenderView1.KeyLightIntensity = 0.75
+RenderView1.BackLightAzimuth = 110.0
+RenderView1.OrientationAxesInteractivity = 0
+RenderView1.UseInteractiveRenderingForSceenshots = 0
+RenderView1.UseOffscreenRendering = 0
+RenderView1.Background = [0.32941176470588235, 0.34901960784313724, 0.42745098039215684]
+RenderView1.UseOffscreenRenderingForScreenshots = 0
+RenderView1.NonInteractiveRenderDelay = 2
+RenderView1.CenterOfRotation = [-0.041592717170715332, -0.041592717170715332, 1.1571387648582458]
+RenderView1.CameraParallelProjection = 0
+RenderView1.CompressorConfig = 'vtkSquirtCompressor 0 3'
+RenderView1.HeadLightWarmth = 0.5
+RenderView1.MaximumNumberOfPeels = 4
+RenderView1.LightDiffuseColor = [1.0, 1.0, 1.0]
+RenderView1.StereoType = 'Red-Blue'
+RenderView1.DepthPeeling = 1
+RenderView1.BackLightKBRatio = 3.5
+RenderView1.StereoCapableWindow = 0
+RenderView1.CameraViewUp = [0.19903997698677883, 0.75159719776025635, 0.62887577460101995]
+RenderView1.LightType = 'HeadLight'
+RenderView1.LightAmbientColor = [1.0, 1.0, 1.0]
+RenderView1.RemoteRenderThreshold = 3.0
+RenderView1.KeyLightElevation = 50.0
+RenderView1.CenterAxesVisibility = 0
+RenderView1.MaintainLuminance = 0
+RenderView1.StillRenderImageReductionFactor = 1
+RenderView1.BackLightWarmth = 0.5
+RenderView1.FillLightElevation = -75.0
+RenderView1.MultiSamples = 0
+RenderView1.FillLightWarmth = 0.40000000000000002
+RenderView1.AlphaBitPlanes = 1
+RenderView1.LightSwitch = 0
+RenderView1.OrientationAxesVisibility = 1
+RenderView1.CameraClippingRange = [12.033054079620602, 30.364099116622299]
+RenderView1.BackLightElevation = 0.0
+RenderView1.ViewTime = 0.0
+RenderView1.OrientationAxesOutlineColor = [1.0, 1.0, 1.0]
+RenderView1.LODThreshold = 5.0
+RenderView1.CollectGeometryThreshold = 100.0
+RenderView1.UseGradientBackground = 0
+RenderView1.KeyLightWarmth = 0.59999999999999998
+RenderView1.OrientationAxesLabelColor = [0.0, 0.0, 0.0]
+
+points_vtu = XMLUnstructuredGridReader( guiName="points.vtu", PointArrayStatus=['pressure', 'temp'], CellArrayStatus=[], FileName=['/Users/fpaolo/packages/pyevtk/src/examples/points.vtu'] )
+
+points_vtu = XMLUnstructuredGridReader( guiName="points.vtu", PointArrayStatus=['pressure', 'temp'], CellArrayStatus=[], FileName=['/Users/fpaolo/packages/pyevtk/src/examples/points.vtu'] )
+
+SetActiveSource(points_vtu)
+Glyph1 = Glyph( guiName="Glyph1", RandomMode=1, GlyphTransform="Transform2", GlyphType="Sphere", MaximumNumberofPoints=5000, ScaleMode='vector', MaskPoints=1, Vectors=['POINTS', ''], SetScaleFactor=0.62000000476837203, Scalars=['POINTS', 'temp'], Orient=1 )
+Glyph1.GlyphType.StartTheta = 0.0
+Glyph1.GlyphType.ThetaResolution = 8
+Glyph1.GlyphTransform.Rotate = [0.0, 0.0, 0.0]
+Glyph1.GlyphTransform.Translate = [0.0, 0.0, 0.0]
+Glyph1.GlyphType.PhiResolution = 8
+Glyph1.GlyphType.EndTheta = 360.0
+Glyph1.GlyphType.EndPhi = 180.0
+Glyph1.GlyphType.Center = [0.0, 0.0, 0.0]
+Glyph1.GlyphType.Radius = 0.29999999999999999
+Glyph1.GlyphTransform.Scale = [1.0, 1.0, 1.0]
+Glyph1.GlyphType.StartPhi = 0.0
+
+a1_temp_PiecewiseFunction = CreatePiecewiseFunction( Points=[-0.21723362796688869, 0.0, 0.9999833102834268, 1.0] )
+
+a1_pressure_PiecewiseFunction = CreatePiecewiseFunction( Points=[0.0, 0.0, 1.0, 1.0] )
+
+a1_Axes_PiecewiseFunction = CreatePiecewiseFunction( Points=[0.0, 0.0, 1.0, 1.0] )
+
+a1_RTData_PiecewiseFunction = CreatePiecewiseFunction( Points=[37.353103637695312, 0.0, 276.82882690429688, 1.0] )
+
+a3_cellNormals_PiecewiseFunction = CreatePiecewiseFunction( Points=[0.0, 0.0, 1.0, 1.0] )
+
+a1_temp_PVLookupTable = GetLookupTableForArray( "temp", 1, Discretize=1, RGBPoints=[-0.21723362796688869, 0.0, 0.0, 1.0, 0.9999833102834268, 1.0, 0.0, 0.0], UseLogScale=0, VectorComponent=0, NanColor=[0.49803921568627452, 0.49803921568627452, 0.49803921568627452], NumberOfTableValues=64, ColorSpace='HSV', VectorMode='Magnitude', HSVWrap=0, ScalarRangeInitialized=1.0, LockScalarRange=0 )
+
+a1_pressure_PVLookupTable = GetLookupTableForArray( "pressure", 1, Discretize=1, RGBPoints=[-0.21723362796688869, 0.23000000000000001, 0.29899999999999999, 0.754, 0.9999833102834268, 0.70599999999999996, 0.016, 0.14999999999999999], UseLogScale=0, VectorComponent=0, NanColor=[0.25, 0.0, 0.0], NumberOfTableValues=256, ColorSpace='Diverging', VectorMode='Magnitude', HSVWrap=0, ScalarRangeInitialized=1.0, LockScalarRange=0 )
+
+a1_Axes_PVLookupTable = GetLookupTableForArray( "Axes", 1, Discretize=1, RGBPoints=[0.0, 0.23000000000000001, 0.29899999999999999, 0.754, 0.5, 0.70599999999999996, 0.016, 0.14999999999999999], UseLogScale=0, VectorComponent=0, NanColor=[0.25, 0.0, 0.0], NumberOfTableValues=256, ColorSpace='Diverging', VectorMode='Magnitude', HSVWrap=0, ScalarRangeInitialized=1.0, LockScalarRange=0 )
+
+a1_RTData_PVLookupTable = GetLookupTableForArray( "RTData", 1, Discretize=1, RGBPoints=[37.353103637695312, 0.23000000000000001, 0.29899999999999999, 0.754, 276.82882690429688, 0.70599999999999996, 0.016, 0.14999999999999999], UseLogScale=0, VectorComponent=0, NanColor=[0.25, 0.0, 0.0], NumberOfTableValues=256, ColorSpace='Diverging', VectorMode='Magnitude', HSVWrap=0, ScalarRangeInitialized=1.0, LockScalarRange=0 )
+
+a3_cellNormals_PVLookupTable = GetLookupTableForArray( "cellNormals", 3, Discretize=1, RGBPoints=[0.99999996686188497, 0.23000000000000001, 0.29899999999999999, 0.754, 1.0000000315190078, 0.70599999999999996, 0.016, 0.14999999999999999], UseLogScale=0, VectorComponent=0, NanColor=[0.25, 0.0, 0.0], NumberOfTableValues=256, ColorSpace='Diverging', VectorMode='Magnitude', HSVWrap=0, ScalarRangeInitialized=1.0, LockScalarRange=0 )
+
+ScalarBarWidgetRepresentation1 = CreateScalarBar( Title='temp', Position2=[0.13, 0.5], TitleOpacity=1.0, TitleShadow=0, AutomaticLabelFormat=1, TitleFontSize=12, TitleColor=[0.0, 0.0, 0.0], AspectRatio=20.0, NumberOfLabels=5, ComponentTitle='', Resizable=1, TitleFontFamily='Arial', Visibility=1, LabelFontSize=12, LabelFontFamily='Arial', TitleItalic=0, Selectable=0, LabelItalic=0, Enabled=1, LabelColor=[0.0, 0.0, 0.0], Position=[0.87, 0.25], LabelBold=0, UseNonCompositedRenderer=1, LabelOpacity=1.0, TitleBold=0, LabelFormat='%-#6.3g', Orientation='Vertical', LabelShadow=0, LookupTable=a1_temp_PVLookupTable, Repositionable=1 )
+GetRenderView().Representations.append(ScalarBarWidgetRepresentation1)
+
+SetActiveSource(points_vtu)
+DataRepresentation17 = Show()
+DataRepresentation17.CubeAxesZAxisVisibility = 1
+DataRepresentation17.SelectionPointLabelColor = [0.5, 0.5, 0.5]
+DataRepresentation17.SelectionPointFieldDataArrayName = 'vtkOriginalPointIds'
+DataRepresentation17.SuppressLOD = 0
+DataRepresentation17.CubeAxesXGridLines = 0
+DataRepresentation17.CubeAxesYAxisTickVisibility = 1
+DataRepresentation17.Position = [0.0, 0.0, 0.0]
+DataRepresentation17.BackfaceRepresentation = 'Follow Frontface'
+DataRepresentation17.SelectionOpacity = 1.0
+DataRepresentation17.SelectionPointLabelShadow = 0
+DataRepresentation17.CubeAxesYGridLines = 0
+DataRepresentation17.OrientationMode = 'Direction'
+DataRepresentation17.Source.TipResolution = 6
+DataRepresentation17.ScaleMode = 'No Data Scaling Off'
+DataRepresentation17.Diffuse = 1.0
+DataRepresentation17.SelectionUseOutline = 0
+DataRepresentation17.SelectionPointLabelFormat = ''
+DataRepresentation17.CubeAxesZTitle = 'Z-Axis'
+DataRepresentation17.Specular = 0.10000000000000001
+DataRepresentation17.SelectionVisibility = 1
+DataRepresentation17.InterpolateScalarsBeforeMapping = 1
+DataRepresentation17.CubeAxesZAxisTickVisibility = 1
+DataRepresentation17.Origin = [0.0, 0.0, 0.0]
+DataRepresentation17.CubeAxesVisibility = 0
+DataRepresentation17.Scale = [1.0, 1.0, 3.0]
+DataRepresentation17.SelectionCellLabelJustification = 'Left'
+DataRepresentation17.DiffuseColor = [0.49449912260624096, 0.49449912260624096, 0.49449912260624096]
+DataRepresentation17.SelectionCellLabelOpacity = 1.0
+DataRepresentation17.CubeAxesInertia = 1
+DataRepresentation17.Source = "Arrow"
+DataRepresentation17.Source.Invert = 0
+DataRepresentation17.Masking = 0
+DataRepresentation17.Opacity = 1.0
+DataRepresentation17.LineWidth = 1.0
+DataRepresentation17.MeshVisibility = 0
+DataRepresentation17.Visibility = 1
+DataRepresentation17.SelectionCellLabelFontSize = 18
+DataRepresentation17.CubeAxesCornerOffset = 0.0
+DataRepresentation17.SelectionPointLabelJustification = 'Left'
+DataRepresentation17.SelectionPointLabelVisibility = 0
+DataRepresentation17.SelectOrientationVectors = ''
+DataRepresentation17.CubeAxesTickLocation = 'Inside'
+DataRepresentation17.BackfaceDiffuseColor = [0.49449912260624096, 0.49449912260624096, 0.49449912260624096]
+DataRepresentation17.CubeAxesYAxisVisibility = 1
+DataRepresentation17.SelectionPointLabelFontFamily = 'Arial'
+DataRepresentation17.Source.ShaftResolution = 6
+DataRepresentation17.CubeAxesFlyMode = 'Closest Triad'
+DataRepresentation17.SelectScaleArray = ''
+DataRepresentation17.CubeAxesYTitle = 'Y-Axis'
+DataRepresentation17.ColorAttributeType = 'POINT_DATA'
+DataRepresentation17.SpecularPower = 100.0
+DataRepresentation17.Texture = []
+DataRepresentation17.SelectionCellLabelShadow = 0
+DataRepresentation17.AmbientColor = [0.0, 0.0, 0.0]
+DataRepresentation17.MapScalars = 1
+DataRepresentation17.PointSize = 4.0
+DataRepresentation17.Source.TipLength = 0.34999999999999998
+DataRepresentation17.SelectionCellLabelFormat = ''
+DataRepresentation17.Scaling = 0
+DataRepresentation17.StaticMode = 0
+DataRepresentation17.SelectionCellLabelColor = [0.0, 1.0, 0.0]
+DataRepresentation17.Source.TipRadius = 0.10000000000000001
+DataRepresentation17.EdgeColor = [1.0, 1.0, 1.0]
+DataRepresentation17.CubeAxesXAxisTickVisibility = 1
+DataRepresentation17.SelectionCellLabelVisibility = 0
+DataRepresentation17.CubeAxesColor = [0.0, 0.0, 0.0]
+DataRepresentation17.Representation = 'Surface'
+DataRepresentation17.CustomBounds = [-3.1415899999999999, 3.0584099999999999, -3.1415899999999999, 3.0584099999999999, -0.21723000000000001, 0.98865599999999998]
+DataRepresentation17.CubeAxesXAxisMinorTickVisibility = 0
+DataRepresentation17.Orientation = [0.0, 0.0, 0.0]
+DataRepresentation17.CubeAxesXTitle = 'X-Axis'
+DataRepresentation17.ScalarOpacityUnitDistance = 0.55900441707809267
+DataRepresentation17.BackfaceOpacity = 1.0
+DataRepresentation17.SelectionCellFieldDataArrayName = 'vtkOriginalCellIds'
+DataRepresentation17.SelectionColor = [1.0, 0.0, 1.0]
+DataRepresentation17.Ambient = 0.0
+DataRepresentation17.SelectionPointLabelFontSize = 18
+DataRepresentation17.ScaleFactor = 1.0
+DataRepresentation17.BackfaceAmbientColor = [1.0, 1.0, 1.0]
+DataRepresentation17.Source.ShaftRadius = 0.029999999999999999
+DataRepresentation17.ScalarOpacityFunction = a1_temp_PiecewiseFunction
+DataRepresentation17.SelectMaskArray = ''
+DataRepresentation17.SelectionLineWidth = 2.0
+DataRepresentation17.CubeAxesZAxisMinorTickVisibility = 0
+DataRepresentation17.CubeAxesXAxisVisibility = 1
+DataRepresentation17.Interpolation = 'Gouraud'
+DataRepresentation17.SelectMapper = 'Projected tetra'
+DataRepresentation17.SelectionCellLabelFontFamily = 'Arial'
+DataRepresentation17.SelectionCellLabelItalic = 0
+DataRepresentation17.CubeAxesYAxisMinorTickVisibility = 0
+DataRepresentation17.CubeAxesZGridLines = 0
+DataRepresentation17.ExtractedBlockIndex = 0
+DataRepresentation17.SelectionPointLabelOpacity = 1.0
+DataRepresentation17.Pickable = 1
+DataRepresentation17.CustomBoundsActive = [0, 0, 0]
+DataRepresentation17.SelectionRepresentation = 'Wireframe'
+DataRepresentation17.SelectionPointLabelBold = 0
+DataRepresentation17.ColorArrayName = 'temp'
+DataRepresentation17.SelectionPointLabelItalic = 0
+DataRepresentation17.SpecularColor = [1.0, 1.0, 1.0]
+DataRepresentation17.LookupTable = a1_temp_PVLookupTable
+DataRepresentation17.SelectionPointSize = 5.0
+DataRepresentation17.SelectionCellLabelBold = 0
+DataRepresentation17.Orient = 0
+
+DataRepresentation20 = Show()
+DataRepresentation20.CubeAxesZAxisVisibility = 1
+DataRepresentation20.SelectionPointLabelColor = [0.5, 0.5, 0.5]
+DataRepresentation20.SelectionPointFieldDataArrayName = 'vtkOriginalPointIds'
+DataRepresentation20.SuppressLOD = 0
+DataRepresentation20.CubeAxesXGridLines = 0
+DataRepresentation20.CubeAxesYAxisTickVisibility = 1
+DataRepresentation20.Position = [0.0, 0.0, 0.0]
+DataRepresentation20.BackfaceRepresentation = 'Follow Frontface'
+DataRepresentation20.SelectionOpacity = 1.0
+DataRepresentation20.SelectionPointLabelShadow = 0
+DataRepresentation20.CubeAxesYGridLines = 0
+DataRepresentation20.OrientationMode = 'Direction'
+DataRepresentation20.Source.TipResolution = 6
+DataRepresentation20.ScaleMode = 'No Data Scaling Off'
+DataRepresentation20.Diffuse = 1.0
+DataRepresentation20.SelectionUseOutline = 0
+DataRepresentation20.SelectionPointLabelFormat = ''
+DataRepresentation20.CubeAxesZTitle = 'Z-Axis'
+DataRepresentation20.Specular = 0.10000000000000001
+DataRepresentation20.SelectionVisibility = 1
+DataRepresentation20.InterpolateScalarsBeforeMapping = 1
+DataRepresentation20.CubeAxesZAxisTickVisibility = 1
+DataRepresentation20.Origin = [0.0, 0.0, 0.0]
+DataRepresentation20.CubeAxesVisibility = 0
+DataRepresentation20.Scale = [1.0, 1.0, 3.0]
+DataRepresentation20.SelectionCellLabelJustification = 'Left'
+DataRepresentation20.DiffuseColor = [0.49449912260624096, 0.49449912260624096, 0.49449912260624096]
+DataRepresentation20.SelectionCellLabelOpacity = 1.0
+DataRepresentation20.CubeAxesInertia = 1
+DataRepresentation20.Source = "Arrow"
+DataRepresentation20.Source.Invert = 0
+DataRepresentation20.Masking = 0
+DataRepresentation20.Opacity = 1.0
+DataRepresentation20.LineWidth = 1.0
+DataRepresentation20.MeshVisibility = 0
+DataRepresentation20.Visibility = 0
+DataRepresentation20.SelectionCellLabelFontSize = 18
+DataRepresentation20.CubeAxesCornerOffset = 0.0
+DataRepresentation20.SelectionPointLabelJustification = 'Left'
+DataRepresentation20.SelectionPointLabelVisibility = 0
+DataRepresentation20.SelectOrientationVectors = ''
+DataRepresentation20.CubeAxesTickLocation = 'Inside'
+DataRepresentation20.BackfaceDiffuseColor = [0.49449912260624096, 0.49449912260624096, 0.49449912260624096]
+DataRepresentation20.CubeAxesYAxisVisibility = 1
+DataRepresentation20.SelectionPointLabelFontFamily = 'Arial'
+DataRepresentation20.Source.ShaftResolution = 6
+DataRepresentation20.CubeAxesFlyMode = 'Closest Triad'
+DataRepresentation20.SelectScaleArray = ''
+DataRepresentation20.CubeAxesYTitle = 'Y-Axis'
+DataRepresentation20.ColorAttributeType = 'POINT_DATA'
+DataRepresentation20.SpecularPower = 100.0
+DataRepresentation20.Texture = []
+DataRepresentation20.SelectionCellLabelShadow = 0
+DataRepresentation20.AmbientColor = [0.0, 0.0, 0.0]
+DataRepresentation20.MapScalars = 1
+DataRepresentation20.PointSize = 2.0
+DataRepresentation20.Source.TipLength = 0.34999999999999998
+DataRepresentation20.SelectionCellLabelFormat = ''
+DataRepresentation20.Scaling = 0
+DataRepresentation20.StaticMode = 0
+DataRepresentation20.SelectionCellLabelColor = [0.0, 1.0, 0.0]
+DataRepresentation20.Source.TipRadius = 0.10000000000000001
+DataRepresentation20.EdgeColor = [1.0, 1.0, 1.0]
+DataRepresentation20.CubeAxesXAxisTickVisibility = 1
+DataRepresentation20.SelectionCellLabelVisibility = 0
+DataRepresentation20.CubeAxesColor = [0.0, 0.0, 0.0]
+DataRepresentation20.Representation = 'Outline'
+DataRepresentation20.CustomBounds = [0.0, 1.0, 0.0, 1.0, 0.0, 1.0]
+DataRepresentation20.CubeAxesXAxisMinorTickVisibility = 1
+DataRepresentation20.Orientation = [0.0, 0.0, 0.0]
+DataRepresentation20.CubeAxesXTitle = 'X-Axis'
+DataRepresentation20.ScalarOpacityUnitDistance = 0.55900441707809267
+DataRepresentation20.BackfaceOpacity = 1.0
+DataRepresentation20.SelectionCellFieldDataArrayName = 'vtkOriginalCellIds'
+DataRepresentation20.SelectionColor = [1.0, 0.0, 1.0]
+DataRepresentation20.Ambient = 0.0
+DataRepresentation20.SelectionPointLabelFontSize = 18
+DataRepresentation20.ScaleFactor = 1.0
+DataRepresentation20.BackfaceAmbientColor = [1.0, 1.0, 1.0]
+DataRepresentation20.Source.ShaftRadius = 0.029999999999999999
+DataRepresentation20.ScalarOpacityFunction = []
+DataRepresentation20.SelectMaskArray = ''
+DataRepresentation20.SelectionLineWidth = 2.0
+DataRepresentation20.CubeAxesZAxisMinorTickVisibility = 1
+DataRepresentation20.CubeAxesXAxisVisibility = 1
+DataRepresentation20.Interpolation = 'Gouraud'
+DataRepresentation20.SelectMapper = 'Projected tetra'
+DataRepresentation20.SelectionCellLabelFontFamily = 'Arial'
+DataRepresentation20.SelectionCellLabelItalic = 0
+DataRepresentation20.CubeAxesYAxisMinorTickVisibility = 1
+DataRepresentation20.CubeAxesZGridLines = 0
+DataRepresentation20.ExtractedBlockIndex = 0
+DataRepresentation20.SelectionPointLabelOpacity = 1.0
+DataRepresentation20.Pickable = 1
+DataRepresentation20.CustomBoundsActive = [0, 0, 0]
+DataRepresentation20.SelectionRepresentation = 'Wireframe'
+DataRepresentation20.SelectionPointLabelBold = 0
+DataRepresentation20.ColorArrayName = ''
+DataRepresentation20.SelectionPointLabelItalic = 0
+DataRepresentation20.SpecularColor = [1.0, 1.0, 1.0]
+DataRepresentation20.LookupTable = []
+DataRepresentation20.SelectionPointSize = 5.0
+DataRepresentation20.SelectionCellLabelBold = 0
+DataRepresentation20.Orient = 0
+
+SetActiveSource(Glyph1)
+DataRepresentation24 = Show()
+DataRepresentation24.CubeAxesZAxisVisibility = 1
+DataRepresentation24.SelectionPointLabelColor = [0.5, 0.5, 0.5]
+DataRepresentation24.SelectionPointFieldDataArrayName = 'vtkOriginalPointIds'
+DataRepresentation24.SuppressLOD = 0
+DataRepresentation24.CubeAxesXGridLines = 0
+DataRepresentation24.CubeAxesYAxisTickVisibility = 1
+DataRepresentation24.Position = [0.0, 0.0, 0.0]
+DataRepresentation24.BackfaceRepresentation = 'Follow Frontface'
+DataRepresentation24.SelectionOpacity = 1.0
+DataRepresentation24.SelectionPointLabelShadow = 0
+DataRepresentation24.CubeAxesYGridLines = 0
+DataRepresentation24.OrientationMode = 'Direction'
+DataRepresentation24.Source.TipResolution = 6
+DataRepresentation24.ScaleMode = 'No Data Scaling Off'
+DataRepresentation24.Diffuse = 1.0
+DataRepresentation24.SelectionUseOutline = 0
+DataRepresentation24.CubeAxesZTitle = 'Z-Axis'
+DataRepresentation24.Specular = 0.10000000000000001
+DataRepresentation24.SelectionVisibility = 1
+DataRepresentation24.InterpolateScalarsBeforeMapping = 1
+DataRepresentation24.CubeAxesZAxisTickVisibility = 1
+DataRepresentation24.Origin = [0.0, 0.0, 0.0]
+DataRepresentation24.CubeAxesVisibility = 1
+DataRepresentation24.Scale = [1.0, 1.0, 3.0]
+DataRepresentation24.SelectionCellLabelJustification = 'Left'
+DataRepresentation24.DiffuseColor = [0.49449912260624096, 0.49449912260624096, 0.49449912260624096]
+DataRepresentation24.SelectionCellLabelOpacity = 1.0
+DataRepresentation24.Source = "Arrow"
+DataRepresentation24.Source.Invert = 0
+DataRepresentation24.Masking = 0
+DataRepresentation24.Opacity = 1.0
+DataRepresentation24.LineWidth = 1.0
+DataRepresentation24.SelectionPointSize = 5.0
+DataRepresentation24.Visibility = 1
+DataRepresentation24.SelectionCellLabelFontSize = 18
+DataRepresentation24.CubeAxesCornerOffset = 0.0
+DataRepresentation24.SelectionPointLabelJustification = 'Left'
+DataRepresentation24.Ambient = 0.0
+DataRepresentation24.SelectOrientationVectors = ''
+DataRepresentation24.CubeAxesTickLocation = 'Inside'
+DataRepresentation24.BackfaceDiffuseColor = [0.49449912260624096, 0.49449912260624096, 0.49449912260624096]
+DataRepresentation24.CubeAxesYAxisVisibility = 1
+DataRepresentation24.SelectionPointLabelFontFamily = 'Arial'
+DataRepresentation24.Source.ShaftResolution = 6
+DataRepresentation24.CubeAxesFlyMode = 'Closest Triad'
+DataRepresentation24.SelectScaleArray = ''
+DataRepresentation24.CubeAxesYTitle = 'Y-Axis'
+DataRepresentation24.ColorAttributeType = 'POINT_DATA'
+DataRepresentation24.SpecularPower = 100.0
+DataRepresentation24.Texture = []
+DataRepresentation24.SelectionCellLabelShadow = 0
+DataRepresentation24.AmbientColor = [0.0, 0.0, 0.0]
+DataRepresentation24.MapScalars = 1
+DataRepresentation24.PointSize = 4.0
+DataRepresentation24.Source.TipLength = 0.34999999999999998
+DataRepresentation24.SelectionCellLabelFormat = ''
+DataRepresentation24.Scaling = 0
+DataRepresentation24.StaticMode = 0
+DataRepresentation24.SelectionCellLabelColor = [0.0, 1.0, 0.0]
+DataRepresentation24.Source.TipRadius = 0.10000000000000001
+DataRepresentation24.EdgeColor = [1.0, 1.0, 1.0]
+DataRepresentation24.CubeAxesXAxisTickVisibility = 1
+DataRepresentation24.SelectionCellLabelVisibility = 0
+DataRepresentation24.CubeAxesColor = [0.0, 0.0, 0.0]
+DataRepresentation24.Representation = 'Surface'
+DataRepresentation24.CustomBounds = [-3.1415899999999999, 3.0584099999999999, -3.1415899999999999, 3.0584099999999999, -0.21723000000000001, 0.98865599999999998]
+DataRepresentation24.CubeAxesXAxisMinorTickVisibility = 0
+DataRepresentation24.Orientation = [0.0, 0.0, 0.0]
+DataRepresentation24.CubeAxesXTitle = 'X-Axis'
+DataRepresentation24.CubeAxesInertia = 1
+DataRepresentation24.BackfaceOpacity = 1.0
+DataRepresentation24.SelectionCellFieldDataArrayName = 'vtkOriginalCellIds'
+DataRepresentation24.SelectionColor = [1.0, 0.0, 1.0]
+DataRepresentation24.SelectionPointLabelVisibility = 0
+DataRepresentation24.SelectionPointLabelFontSize = 18
+DataRepresentation24.ScaleFactor = 1.0
+DataRepresentation24.BackfaceAmbientColor = [1.0, 1.0, 1.0]
+DataRepresentation24.Source.ShaftRadius = 0.029999999999999999
+DataRepresentation24.SelectMaskArray = ''
+DataRepresentation24.SelectionLineWidth = 2.0
+DataRepresentation24.CubeAxesZAxisMinorTickVisibility = 0
+DataRepresentation24.CubeAxesXAxisVisibility = 1
+DataRepresentation24.Interpolation = 'Flat'
+DataRepresentation24.SelectionCellLabelFontFamily = 'Arial'
+DataRepresentation24.SelectionCellLabelItalic = 0
+DataRepresentation24.CubeAxesYAxisMinorTickVisibility = 0
+DataRepresentation24.CubeAxesZGridLines = 0
+DataRepresentation24.SelectionPointLabelFormat = ''
+DataRepresentation24.SelectionPointLabelOpacity = 1.0
+DataRepresentation24.Pickable = 1
+DataRepresentation24.CustomBoundsActive = [0, 0, 0]
+DataRepresentation24.SelectionRepresentation = 'Wireframe'
+DataRepresentation24.SelectionPointLabelBold = 0
+DataRepresentation24.ColorArrayName = 'temp'
+DataRepresentation24.SelectionPointLabelItalic = 0
+DataRepresentation24.SpecularColor = [1.0, 1.0, 1.0]
+DataRepresentation24.LookupTable = a1_temp_PVLookupTable
+DataRepresentation24.MeshVisibility = 0
+DataRepresentation24.SelectionCellLabelBold = 0
+DataRepresentation24.Orient = 0
+
+Render()
