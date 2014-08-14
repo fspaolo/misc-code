@@ -19,74 +19,90 @@ FILE_RATES = 'h_integrate.csv'
 FILE_AREA = 'area_grid_cells.h5'
 DIR = '/Users/fpaolo/data/shelves/' 
 #FILE_DATA = 'all_19920716_20111015_shelf_tide_grids_mts.h5.ice_oce'
-UNITS = 'cm/yr'
+UNITS = 'cm/year'
 
 plt.rcParams['font.size'] = 11
 
-shelves = [
-    ap.fimbulw,
-    ap.fimbule,
-    ap.lazarev,
-    ap.amery,
-    ap.west,
-    ap.shackleton,
-    ap.totten,
-    ap.moscow,
-    ap.rosse,
-    ap.rossw,
-    ap.sulzberger,
-    ap.getz,
-    ap.dotson,
-    ap.crosson,
-    ap.thwaites,
-    ap.pig,
-    ap.abbot,
-    ap.stange,
-    ap.bach,
-    ap.wilkins,
-    ap.georges,
-    ap.georgen,
-    ap.larsenb,
-    ap.larsenc,
-    ap.larsend,
-    ap.ronne,
-    ap.filchner,
-    ap.brunt,
-    ap.riiser,
-    ap.ais,
+keys = [
+    'brunt',
+    'riiser',
+    'fimbul',
+    'lazarev',
+    'baudouin',
+    'harald',
+    'amery',
+    'west',
+    'shackleton',
+    'totten',
+    'moscow',
+    'holmes',
+    #'dibble',
+    'mertz',
+    'rennick',
+    'drygalski',
+    'rosse',
+    'rossw',
+    'sulzberger',
+    'nickerson',
+    'getz',
+    'dotson',
+    'crosson',
+    'thwaites',
+    'pig',
+    'cosgrove',
+    'abbot',
+    'venable',
+    'stange',
+    'bach',
+    'wilkins',
+    'georgevi',
+    'larsenb',
+    'larsenc',
+    'larsend',
+    'ronne',
+    'filchner',
     ]
 
 names = [
-    'Fimbul W',
-    'Fimbul E',
+    'Brunt',
+    'Riiser',
+    'Fimbul',
     'Lazarev',
+    'Baudouin',
+    'Prince Harald',
     'Amery',
     'West',
     'Shackleton',
     'Totten',
     'Moscow',
-    'Ross E',
-    'Ross W',
+    'Holmes',
+    'Dibble',
+    'Mertz',
+    'Cook',
+    'Rennick',
+    'Mariner',
+    'Drygalski',
+    'Ross EAIS',
+    'Ross WAIS',
     'Sulzberger',
+    'Nickerson',
     'Getz',
     'Dotson',
     'Crosson',
     'Thwaites',
     'Pine Island',
+    'Cosgrove',
     'Abbot',
+    'Venable',
     'Stange',
     'Bach',
     'Wilkins',
-    'George S',
-    'George N',
+    'George VI',
     'Larsen B',
     'Larsen C',
     'Larsen D',
     'Ronne',
     'Filchner',
-    'Brunt',
-    'Riiser',
-    'All Antarctica',
     ]
 
 def gradient(y, dt=0.25):
@@ -122,7 +138,7 @@ rates = rates_['dhdt_poly(cm/yr)']
 rates_err = rates_['dhdt_poly_err(cm/yr)']
 
 fa = tb.open_file(DIR + FILE_AREA)
-area = fa.root.area[:]
+a = fa.root.area[:]
 fa.close()
 
 if 0:
@@ -137,40 +153,39 @@ if 0:
     sys.exit()
 
 # area-average time series
-df = pd.DataFrame(index=time)
-df2 = pd.DataFrame(index=time)
+df_dat = pd.DataFrame(index=time)
+df_err = pd.DataFrame(index=time)
 
-for k, s in zip(names, shelves):
-    shelf, x, y = ap.get_subset(s, d, lon, lat)
-    error, x, y = ap.get_subset(s, e, lon, lat)
-    A, _, _ = ap.get_subset(s, area, lon, lat)
-    #A = ap.get_area_cells(shelf[10], x, y)
-    ts, _ = ap.area_weighted_mean(shelf, A)
-    ts2 = ap.area_weighted_mean_err(error, A)
-    df[k] = ts
-    df2[k] = ts2
-    if 0:
-        print k
-        plt.imshow(shelf[10], extent=(x.min(), x.max(), y.min(), y.max()), 
-                   origin='lower', interpolation='nearest', aspect='auto')
-        plt.show()
+for key, name in zip(keys, names):
 
-#df.fillna(0, inplace=True)  # leave this!!!
+    print 'averageing', name
 
-if 0:
-    df = df.apply(ap.hp_filt, lamb=7)
+    data = d.copy()
+    error = e.copy()
+    area = a.copy()
+
+    i, j = ap.where_isnan(key, lon, lat)
+    data[:,i,j] = np.nan
+    error[:,i,j] = np.nan
+    area[i,j] = np.nan
+
+    df_dat[name], _ = ap.area_weighted_mean(data, area)
+    df_err[name] = ap.area_weighted_mean_err(error, area)
 
 if 0:
-    df = df.apply(detrend)
+    df_dat = df_dat.apply(ap.hp_filt, lamb=7)
 
 if 0:
-    df = df.apply(gradient, dt=0.25)
+    df_dat = df_dat.apply(detrend)
+
+if 0:
+    df_dat = df_dat.apply(gradient, dt=0.25)
 
 if 1:
-    df = df.apply(ap.referenced, to='mean')
+    df_dat = df_dat.apply(ap.referenced, to='mean')
 
 ncols = 3
-nrows = int(np.ceil(len(df.columns) / float(ncols)))
+nrows = int(np.ceil(len(df_dat.columns) / float(ncols)))
 
 # plot
 fig, axs = plt.subplots(nrows, ncols, sharex=False, sharey=False, figsize=(16.5,14))
@@ -184,42 +199,41 @@ for j in range(ncols):
 
         #------------------------- plot -----------------------------
 
-        print n, k
-        k = df.columns[n]
-        s = df[k]
-        err = df2[k]
-        m, c = ap.linear_fit(time, s.values, return_coef=True)
-        x, y = ap.linear_fit(time, s.values, return_coef=False)
-        axs[i,j].plot(time, y, c='0.2', linewidth=0.75, zorder=1)
-        axs[i,j].plot(time, s.values, 's', c='0.5', markersize=4, clip_on=False, zorder=3)
-        #axs[i,j].errorbar(time, s.values, yerr=3*err, fmt='s', c='0.5', markersize=4, zorder=1)
+        print n, name
+        name = df_dat.columns[n]
+        dat = df_dat[name]
+        err = df_err[name]
+        m, c = ap.linear_fit(time, dat.values, return_coef=True)
+        x, y = ap.linear_fit(time, dat.values, return_coef=False)
+        axs[i,j].plot(x, y, c='0.2', linewidth=0.75, zorder=1)
+        axs[i,j].plot(time, dat.values, 's', c='0.5', markersize=4, clip_on=False, zorder=3)
         if 1:
             # poly lasso 
-            poly = ap.lasso_cv(time, s.values, cv=10, max_deg=3)
-            poly_err = ap.gse(poly, s)
+            poly = ap.lasso_cv(time, dat.values, cv=10, max_deg=3)
+            poly_err = ap.gse(poly, dat)
             poly_rate = (rate(time, poly)).round(1)
             poly_rate_err = (rate_err(time, poly_err, independent=False) * 3).round(1)
             axs[i,j].plot(time, poly, c='b', linewidth=1.5, zorder=2)
             #axs[i,j].errorbar(time, poly, yerr=poly_err, c='b', linewidth=1.75, zorder=4)
         if 0:
             # poly lstsq
-            axs[i,j].plot(time, ap.lstsq_cv(time, s.values, cv=10, max_deg=3,
+            axs[i,j].plot(time, ap.lstsq_cv(time, dat.values, cv=10, max_deg=3,
                           randomise=True), c='r', linewidth=1.5)
 
         #----------------------- settings ---------------------------
 
         if i == 0:
-            ap.intitle('%s %.1f$\pm$%.1f %s' % (k, rates[k], rates_err[k], UNITS),
+            ap.intitle('%s %.1f $\pm$ %.1f %s' % (name, rates[name], rates_err[name], UNITS),
                        ax=axs[i,j],  loc=8, pad=-1, borderalpha=0.8)
             '''
-            ap.intitle('%s %.1f$\pm$%.1f %s' % (k, poly_rate, poly_rate_err, UNITS),
+            ap.intitle('%s %.1f $\pm$ %.1f %s' % (k, poly_rate, poly_rate_err, UNITS),
                        ax=axs[i,j],  loc=8, pad=-1, borderalpha=0.8)
             '''
         else:
-            ap.intitle('%s %.1f$\pm$%.1f' % (k, rates[k], rates_err[k]),
+            ap.intitle('%s %.1f $\pm$ %.1f' % (name, rates[name], rates_err[name]),
                        ax=axs[i,j], loc=8, pad=-1, borderalpha=0.8)
             '''
-            ap.intitle('%s %.1f$\pm$%.1f' % (k, poly_rate, poly_rate_err),
+            ap.intitle('%s %.1f $\pm$ %.1f' % (k, poly_rate, poly_rate_err),
                        ax=axs[i,j], loc=8, pad=-1, borderalpha=0.8)
             '''
 
@@ -228,7 +242,7 @@ for j in range(ncols):
         else:
             ap.adjust_spines(axs[i,j], ['left', 'bottom'], pad=15)
             axs[i,j].set_xticks([1994, 1997, 2000, 2003, 2006, 2009, 2012])
-        mn, mx = ap.get_limits(s)
+        mn, mx = ap.get_limits(dat)
         mn, mx = int(mn), int(mx) #<<<<<<<<<<<<<<<<<<<<<<<< for cm
         axs[i,j].set_yticks([mn, 0, mx])
         axs[i,j].set_ylim(mn, mx)
@@ -240,7 +254,7 @@ for j in range(ncols):
 fig.subplots_adjust(left=0.07, right=0.95, bottom=0.01, top=0.95, wspace=0.25, hspace=0.28)
 axs[5,0].set_ylabel('Elevation change (cm)', fontsize='large', labelpad=13)
 fig.autofmt_xdate()
-plt.savefig('Sup1_ts_shelves_v3.png', dpi=150, bbox_inches='tight')
+#plt.savefig('Sup1_ts_shelves_v4.png', dpi=150, bbox_inches='tight')
 plt.show()
 
 #---------------------------------------------------------------------

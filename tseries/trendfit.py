@@ -14,7 +14,7 @@ import altimpy as ap
 PLOT = True
 #FILE_IN = 'all_19920716_20111015_shelf_tide_grids_mts.h5.ice_oce'
 FILE_IN = 'h_postproc.h5'
-FILE_OUT = 'h_trendfit2.h5'
+FILE_OUT = 'h_trendfit.h5'
 DIR = '/Users/fpaolo/data/shelves/' 
 
 
@@ -129,7 +129,7 @@ if 0: # subset
 
 #------------------------------------------------------
 
-if 0: # plot alphas and MSEs (prediction error curve)
+if 0: # plot alphas and MSEs (the prediction error curve)
     N = 3
     x = time
     y = data[:,5,2] # 6,2 -> PIG
@@ -183,14 +183,14 @@ line_rate_err = rate_err(time, line_err, independent=False)
 # derivative
 dpoly = poly.apply(gradient,  dt=time[2]-time[1], raw=True)
 
-# derivative error FIXME something wrong with the propagation!
+# derivative error -> FIXME something wrong with the propagation!
 #dpoly_err = gradient_err(time, poly_err, independent=False)
 dpoly_err = gradient_err(time, ap.gse(poly, data), independent=False)
 
 # derivative average rate
 dpoly_rate = dpoly.apply(rate, x=time, raw=True)
 
-# derivative average rate error FIXME something wrong with the propagation!
+# derivative average rate error -> FIXME something wrong with the propagation!
 dpoly_rate_err = rate_err(time, dpoly_err, independent=False)
 
 if 0:
@@ -262,15 +262,15 @@ if 0: # print errors
     print 'frac error:   ', (np.abs(e/f) * 100).round(1)
     exit()
 
+#---------------------------------------------------------------------
+# save data 
+#---------------------------------------------------------------------
+
 # spherical -> cartesian
 xx, yy = np.meshgrid(lon, lat)
 xed, yed = ap.cell2node(lon, lat)
 xed2d, yed2d = np.meshgrid(xed, yed)
 xyz = np.column_stack(ap.sph2xyz(xed2d.ravel(), yed2d.ravel()))
-
-#---------------------------------------------------------------------
-# save data 
-#---------------------------------------------------------------------
 
 if 1:
     print('saving data...')
@@ -294,22 +294,18 @@ if 1:
     except:
         pass
     # EDIT HERE
-    write_slabs(fout, 'poly_lasso', poly)
-    fout.create_array('/', 'poly_lasso', poly)
-    fout.create_array('/', 'poly_lasso_error', poly_err)
-    fout.create_array('/', 'poly_lasso_rate', poly_rate)
-    fout.create_array('/', 'poly_lasso_rate_error', poly_rate_err)
+    fout.create_array('/', 'poly_lasso', poly)  # 3d
+    fout.create_array('/', 'poly_lasso_error', poly_err)  # 3d
+    fout.create_array('/', 'poly_lasso_rate', poly_rate)  # 2d
+    fout.create_array('/', 'poly_lasso_rate_error', poly_rate_err)  # 2d
 
-    write_slabs(fout, 'poly_lstsq', poly2)
     fout.create_array('/', 'poly_lstsq', poly2)
     fout.create_array('/', 'poly_lstsq_rate', poly2_rate)
 
-    #write_slabs(fout, 'line_lstsq', line)
     #fout.create_array('/', 'line_lstsq', line)
     fout.create_array('/', 'line_lstsq_rate', line_rate)
     fout.create_array('/', 'line_lstsq_rate_error', line_rate_err)
 
-    write_slabs(fout, 'dpoly_lasso', dpoly)
     fout.create_array('/', 'dpoly_lasso', dpoly)
     fout.create_array('/', 'dpoly_lasso_error', dpoly_err)
     fout.create_array('/', 'dpoly_lasso_rate', dpoly_rate)

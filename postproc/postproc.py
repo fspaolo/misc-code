@@ -17,7 +17,7 @@ from mpl_toolkits.basemap import interp
 
 import scipy.ndimage as ni
 
-# CHECK AND EDIT THE 'IF 0/1' IN THE CODE
+# ==> CHECK AND EDIT THE 'IF 0/1' IN THE CODE <==
 PLOT = False
 DIR = '/Users/fpaolo/data/shelves/' 
 FILE_IN = 'all_19920716_20111015_shelf_tide_grids_mts.h5.ice_oce'
@@ -185,10 +185,9 @@ if PLOT: # plot time series
 # save data 
 #---------------------------------------------------------------------
 
-if 1:
+if 0:
     print('saving data...')
     fout = tb.open_file(DIR + FILE_OUT, 'a')
-    '''
     try:
         fout.create_array('/', 'time', time)
     except:
@@ -208,8 +207,6 @@ if 1:
     except:
         pass
     fout.create_array('/', 'dh_mean_mixed_const_xcal', data)
-    write_slabs(fout, 'dh_mean_mixed_const_xcal', data)
-    '''
     fout.create_array('/', 'dh_error_xcal', error)
     fout.flush()
     fout.close()

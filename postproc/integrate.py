@@ -1,6 +1,49 @@
 """
 Integrate grid-cell rates, and calculate full-ice-shelf rates and volumes
 
+
+Hi Fernando,
+
+I ran two density models on BEDMAP-2 elevations;
+
+Model-A: up to 40 m of firn at 500 kg/m^3 (thick and light, suited to RIS/FRIS);
+
+Model-B: up to 15 m of firn at 700 kg/m^3 (thin and heavy, Ted's suggestion for Wilkins).
+
+Results are (value pairs are mean density and mean thickness)
+
+Model-A:
+
+Firn density    = 500
+Max. firn depth = 40
+Wilkins
+  851.5371  247.6874
+
+Brunt
+  856.4734  302.6383
+
+Larsen D
+  854.6196  257.6660
+
+Model-B:
+
+Firn density    = 700
+Max. firn depth = 15
+Wilkins
+  899.9239  315.4988
+
+Brunt
+  907.0995  408.9416
+
+Larsen D
+  899.1307  324.2276
+
+Wilkins values are different from earlier today because there I used my own gridded elevation; here I use BEDMAP-2.
+
+I'd regard these two models as bracketing the likely values for these three ice shelves. Model-A produces ice thicknesses for RIS and FRIS that agree well with B-2.  Model-B is probably good for Wilkins.  Climatically, Brunt and Larsen-D probably fall somewhere between Wilkins and FRIS.
+
+--Laurie
+
 """
 
 import sys
@@ -12,98 +55,117 @@ import altimpy as ap
 from mpl_toolkits.basemap import interp
 from astropy.convolution import convolve, Gaussian2DKernel
 
-
-PLOT = True
 FILE_IN = '/Users/fpaolo/data/shelves/'+'h_trendfit.h5'
 FILE_OUT = '/Users/fpaolo/data/shelves/'+'h_integrate.csv'
 FILE_AREA = '/Users/fpaolo/data/shelves/'+'area_grid_cells.h5'
+FILE_DENS = '/Users/fpaolo/data/shelves/'+'density_grid_cells.h5'
 FILE_MASK = '/Users/fpaolo/data/masks/scripps/scripps_antarctica_mask1km_v1.h5'
 
-regions = [
-    ap.fimbulw,
-    ap.fimbule,
-    ap.lazarev,
-    ap.amery,
-    ap.west,
-    ap.shackleton,
-    ap.totten,
-    ap.moscow,
-    ap.rosse,
-    ap.rossw,
-    ap.sulzberger,
-    ap.getz,
-    ap.dotson,
-    ap.crosson,
-    ap.thwaites,
-    ap.pig,
-    ap.abbot,
-    ap.stange,
-    ap.bach,
-    ap.wilkins,
-    ap.georges,
-    ap.georgen,
-    ap.larsenb,
-    ap.larsenc,
-    ap.larsend,
-    ap.ronne,
-    ap.filchner,
-    ap.brunt,
-    ap.riiser,
+keys = [
+    'brunt',
+    'riiser',
+    'fimbul',
+    'lazarev',
+    'baudouin',
+    'harald',
+    'amery',
+    'west',
+    'shackleton',
+    'totten',
+    'moscow',
+    'holmes',
+    'dibble',
+    'mertz',
+    'cook',
+    'rennick',
+    'mariner',
+    'drygalski',
+    'rosse',
+    'rossw',
+    'sulzberger',
+    'nickerson',
+    'getz',
+    'dotson',
+    'crosson',
+    'thwaites',
+    'pig',
+    'cosgrove',
+    'abbot',
+    'venable',
+    'stange',
+    'bach',
+    'wilkins',
+    'georgevi',
+    'larsenb',
+    'larsenc',
+    'larsend',
+    'ronne',
+    'filchner',
     #
-    ap.queenmaud,
-    ap.fris,
-    ap.larsen,
-    ap.belling,
-    ap.amundsen,
-    ap.ris,
-    ap.tottmosc,
-    ap.westshac,
-    ap.wais,
-    None, #ap.eais,
-    ap.ais,
+    'qml',
+    'wvl',
+    'ris',
+    'as',
+    'bs',
+    'lis',
+    'fris',
+    #
+    'eais',
+    'wais',
+    'ais'
     ]
 
 names = [
-    'Fimbul W',
-    'Fimbul E',
+    'Brunt',
+    'Riiser',
+    'Fimbul',
     'Lazarev',
+    'Baudouin',
+    'Prince Harald',
     'Amery',
     'West',
     'Shackleton',
     'Totten',
     'Moscow',
-    'Ross E',
-    'Ross W',
+    'Holmes',
+    'Dibble',
+    'Mertz',
+    'Cook',
+    'Rennick',
+    'Mariner',
+    'Drygalski',
+    'Ross EAIS',
+    'Ross WAIS',
     'Sulzberger',
+    'Nickerson',
     'Getz',
     'Dotson',
     'Crosson',
     'Thwaites',
     'Pine Island',
+    'Cosgrove',
     'Abbot',
+    'Venable',
     'Stange',
     'Bach',
     'Wilkins',
-    'George S',
-    'George N',
+    'George VI',
     'Larsen B',
     'Larsen C',
     'Larsen D',
     'Ronne',
     'Filchner',
-    'Brunt',
-    'Riiser',
     #
     'Queen Maud',
-    'Filchner Ronne',
-    'Eastern AP',
-    'Bellingshausen',
-    'Amundsen',
+    'Wilkes-Victoria',
     'Ross',
-    'Totten Moscow',
-    'West Shackleton',
-    'West Antarctica',
+    'Amundsen',
+    'Bellingshausen',
+    'Larsen',
+    'Filchner-Ronne',
+    #
     'East Antarctica',
+    'West Antarctica',
     'All Antarctica',
     ]
 
@@ -129,64 +191,114 @@ def as_array(data):
 #------------------------------------------------------
 
 print 'loading data...'
-fin = tb.open_file(FILE_IN)  # data
-fa = tb.open_file(FILE_AREA) # area
+fin = tb.open_file(FILE_IN)  # data (m)
+fa = tb.open_file(FILE_AREA) # area (km^2)
+fd = tb.open_file(FILE_DENS) # density (kg/m^3)
 fm = tb.open_file(FILE_MASK) # mask
 time = fin.root.time[:]
 lon = fin.root.lon[:]
 lat = fin.root.lat[:]
-rate_poly = fin.root.poly_lasso_rate[:] * 1e2  # m -> cm
-error_poly = np.abs(fin.root.poly_lasso_rate_error[:]) * 1e2 # TODO, abs needed?
-rate_line = fin.root.line_lstsq_rate[:] * 1e2
-error_line = np.abs(fin.root.line_lstsq_rate_error[:]) * 1e2
-rate_dpoly = fin.root.dpoly_lasso_rate[:] * 1e2
-error_dpoly = np.abs(fin.root.dpoly_lasso_rate_error[:]) * 1e2
-area = fa.root.area[:]
+
+rate_poly = fin.root.poly_lasso_rate_ib_sl[:]
+rate_poly_err = np.abs(fin.root.poly_lasso_rate_ib_sl_err[:])
+rate_line = fin.root.line_lstsq_rate_ib_sl[:]
+rate_line_err = np.abs(fin.root.line_lstsq_rate_ib_sl_err[:])
+rate_dpoly = fin.root.dpoly_lasso_rate[:]
+rate_dpoly_err = np.abs(fin.root.dpoly_lasso_rate_error[:])  # FIXME Change name: error -> err
+
+area = fa.root.area[:] * 1e6 # km^2 -> m^2
+freeboard = fd.root.freeboard[:]
+thickness = fd.root.thickness[:]
+thickness_err = fd.root.thickness_err[:]
+density = fd.root.density[:]
+density_err = fd.root.density_err[:]
 mask = fm.root.mask[::2,::2]
-mask_x = fm.root.x[::2]
-mask_y = fm.root.y[::2]
+x_mask = fm.root.x[::2]
+y_mask = fm.root.y[::2]
 ny, nx = rate_poly.shape
+
 fin.close()
 fa.close()
+fd.close()
 fm.close()
 
+if 0: # for testing only
+    FILE_GL = '/Users/fpaolo/data/coastline/antarctica_gl_ll.h5'
+    FILE_COAST = '/Users/fpaolo/data/coastline/moa_coastfile_ll.h5'
+    FILE_ISL = '/Users/fpaolo/data/coastline/moa_islands_ll.h5'
 
-if 0: # subset
-    print 'subsetting...'
-    region = ap.larsen
-    rate_poly, _, _ = ap.get_subset(region, rate_poly, lon, lat)
-    error_poly, _, _ = ap.get_subset(region, error_poly, lon, lat)
-    rate_line, _, _ = ap.get_subset(region, rate_line, lon, lat)
-    error_line, _, _ = ap.get_subset(region, error_line, lon, lat)
-    rate_dpoly, _, _ = ap.get_subset(region, rate_dpoly, lon, lat)
-    error_dpoly, _, _ = ap.get_subset(region, error_dpoly, lon, lat)
-    area, lon, lat = ap.get_subset(region, area, lon, lat)
-    ny, nx = rate_poly.shape
-    print 'done'
+    data = rate_poly
+    data = area
+    ind = ap.where_isnan('cook', lon, lat)
+    data[ind] = np.nan
+    
+    # plot boundaries
+    f = tb.open_file(FILE_COAST)
+    d = f.root.data[::10]
+    y = d[:,0]
+    x = ap.lon_180_360(d[:,1])
+    f2 = tb.open_file(FILE_GL)
+    d2 = f2.root.data[::10]
+    y2 = d2[:,0]
+    x2 = ap.lon_180_360(d2[:,1])
+    f3 = tb.open_file(FILE_ISL)
+    d3 = f3.root.data[::10]
+    y3 = d3[:,0]
+    x3 = ap.lon_180_360(d3[:,1])
+    f.close()
+    f2.close()
+    f3.close()
+    
+    plt.imshow(data, origin='lower', interpolation='nearest', 
+               extent=(lon.min(), lon.max(), lat.min(), lat.max()), 
+               aspect='auto')
+    plt.plot(x, y, 'ok', markersize=1)
+    plt.plot(x2, y2, 'ok', markersize=1)
+    plt.plot(x3, y3, 'ok', markersize=1)
+    plt.xlim(lon.min(), lon.max())
+    plt.ylim(lat.min(), lat.max())
+    plt.grid(True)
+    plt.show()
+    exit()
 
 #------------------------------------------------------
 
-if 0:
-    plt.figure()
-    plt.imshow(rate_poly, origin='lower', interpolation='nearest')
-    plt.figure()
-    plt.imshow(error_poly, origin='lower', interpolation='nearest')
-
-ij_samp = np.where(np.isnan(rate_poly))  # original data coverage
-
-if 1: # smooth and interpolate before integrating
-    gauss_kernel = Gaussian2DKernel(1)  # std of 1 pixel
+if 1: # smooth without interpolating!
+    ind = np.where(np.isnan(rate_poly))
+    gauss_kernel = Gaussian2DKernel(1)
     rate_poly = convolve(rate_poly, gauss_kernel, boundary='wrap', normalize_kernel=True)
-    error_poly = convolve(error_poly, gauss_kernel, boundary='wrap', normalize_kernel=True)
+    rate_poly_err = convolve(rate_poly_err, gauss_kernel, boundary='wrap', normalize_kernel=True)
     rate_line = convolve(rate_line, gauss_kernel, boundary='wrap', normalize_kernel=True)
-    error_line = convolve(error_line, gauss_kernel, boundary='wrap', normalize_kernel=True)
+    rate_line_err = convolve(rate_line_err, gauss_kernel, boundary='wrap', normalize_kernel=True)
     rate_dpoly = convolve(rate_dpoly, gauss_kernel, boundary='wrap', normalize_kernel=True)
-    error_dpoly = convolve(error_dpoly, gauss_kernel, boundary='wrap', normalize_kernel=True)
+    rate_dpoly_err = convolve(rate_dpoly_err, gauss_kernel, boundary='wrap', normalize_kernel=True)
+    rate_poly[ind] = np.nan
+    rate_poly_err[ind] = np.nan
+    rate_line[ind] = np.nan
+    rate_line_err[ind] = np.nan
+    rate_dpoly[ind] = np.nan
+    rate_dpoly_err[ind] = np.nan
 
-if 1: # apply mask to data
+
+    '''
+    ind1 = np.where(np.isnan(density))
+    ind2 = np.where((density < 700) | (freeboard/thickness > 0.2))
+    freeboard[ind2] = np.nan
+    thickness[ind2] = np.nan
+    density[ind2] = np.nan
+    gauss_kernel = Gaussian2DKernel(4)
+    freeboard = convolve(freeboard, gauss_kernel, boundary='wrap', normalize_kernel=True)
+    thickness = convolve(thickness, gauss_kernel, boundary='wrap', normalize_kernel=True)
+    density = convolve(density, gauss_kernel, boundary='wrap', normalize_kernel=True)
+    freeboard[ind1] = np.nan
+    thickness[ind1] = np.nan
+    density[ind1] = np.nan
+    '''
+
+if 1: # apply mask to data (some are redundant)
     xx, yy = np.meshgrid(lon, lat)
     xx_polar, yy_polar = ap.ll2xy(xx, yy, units='m')
-    mask_rate = interp(mask[::-1,:], mask_x, mask_y[::-1], xx_polar, yy_polar, order=0) # nn
+    mask_rate = interp(mask[::-1,:], x_mask, y_mask[::-1], xx_polar, yy_polar, order=0) # nn
     mask_rate = mask_rate.astype('f8')
     # remove everything but ice shelves
     mask_rate[mask_rate!=4] = np.nan    
@@ -195,193 +307,188 @@ if 1: # apply mask to data
     mask_rate[i,:] = np.nan
     # mask out data
     i, j = np.where(np.isnan(mask_rate))
-    '''
-    plt.figure()
-    plt.imshow(rate_poly, origin='lower', interpolation='nearest')
-    '''
     rate_poly[i,j] = np.nan
-    error_poly[i,j] = np.nan
+    rate_poly_err[i,j] = np.nan
     rate_line[i,j] = np.nan
-    error_line[i,j] = np.nan
+    rate_line_err[i,j] = np.nan
     rate_dpoly[i,j] = np.nan
-    error_dpoly[i,j] = np.nan
+    rate_dpoly_err[i,j] = np.nan
     area[i,j] = np.nan
-    '''
-    plt.figure()
-    plt.imshow(rate_poly, origin='lower', interpolation='nearest')
-    plt.show()
-    exit()
-    '''
+    freeboard[i,j] = np.nan
+    thickness[i,j] = np.nan
+    thickness_err[i,j] = np.nan
+    density[i,j] = np.nan
+    density_err[i,j] = np.nan
 
-# two datasets: 'sampled' and 'full' coverage
-rate_poly_samp = rate_poly.copy() 
-error_poly_samp = error_poly.copy()
-rate_line_samp = rate_line.copy() 
-error_line_samp = error_line.copy()
-rate_dpoly_samp = rate_dpoly.copy() 
-error_dpoly_samp = error_dpoly.copy()
-area_samp = area.copy()
-
-rate_poly_samp[ij_samp] = np.nan 
-error_poly_samp[ij_samp] = np.nan 
-rate_line_samp[ij_samp] = np.nan 
-error_line_samp[ij_samp] = np.nan 
-rate_dpoly_samp[ij_samp] = np.nan
-error_dpoly_samp[ij_samp] = np.nan
-area_samp[ij_samp] = np.nan
+if 0:  # save the smoothed data
+    pass # => save data here if only smoothed fields needed <=
 
 # save header to csv file
 fout = open(FILE_OUT, 'w')
-fout.write('ice_shelf,total_area(km2),survey_area(km2),dhdt_poly(cm/yr),'
-           'dhdt_poly_err(cm/yr),dhdt_line(cm/yr), dhdt_line_err(cm/yr),'
-           'dvdt_poly(km3/yr),dvdt_poly_err(km3/yr),dvdt_line(km3/yr),'
-           'dvdt_line_err(km3/yr),accel_poly(cm/yr2),accel_poly_err(cm/yr2)\n')
+fout.write('ice_shelf,total_area(km2),survey_area(km2),'
+           'density(kg/m3),density_err(kg/m3),'
+           'thickness(m),thickness_err(m),H/Z,'
+           'dhdt_poly(cm/yr),dhdt_poly_err(cm/yr),'
+           'dhdt_line(cm/yr),dhdt_line_err(cm/yr),'
+           'dmdt_poly(Gt/yr),dmdt_poly_err(Gt/yr),'
+           'dmdt_line(Gt/yr),dmdt_line_err(Gt/yr),'
+           'accel_poly(cm/yr2),accel_poly_err(cm/yr2),'
+           '\n')
 
 # calculate for each ice shelf
-for name, region in zip(names, regions):
+for key, name in zip(keys, names):
 
-    if name == 'East Antarctica':
-        rate_poly_full_1, _, _ = ap.get_subset(ap.eais1, rate_poly, lon, lat)
-        error_poly_full_1, _, _ = ap.get_subset(ap.eais1, error_poly, lon, lat)
-        rate_line_full_1, _, _ = ap.get_subset(ap.eais1, rate_line, lon, lat)
-        error_line_full_1, _, _ = ap.get_subset(ap.eais1, error_line, lon, lat)
-        rate_dpoly_full_1, _, _ = ap.get_subset(ap.eais1, rate_dpoly, lon, lat)
-        error_dpoly_full_1, _, _ = ap.get_subset(ap.eais1, error_dpoly, lon, lat)
-        area_full_1, lon_1, lat_1 = ap.get_subset(ap.eais1, area, lon, lat)
+    rate_poly_ = rate_poly.copy()
+    rate_poly_err_ = rate_poly_err.copy()
+    rate_line_ = rate_line.copy()
+    rate_line_err_ = rate_line_err.copy()
+    rate_dpoly_ = rate_dpoly.copy()
+    rate_dpoly_err_ = rate_dpoly_err.copy()
+    area_ = area.copy()
+    freeboard_ = freeboard.copy()
+    thickness_ = thickness.copy()
+    thickness_err_ = thickness_err.copy()
+    density_ = density.copy()
+    density_err_ = density_err.copy()
 
-        rate_poly_samp_1, _, _ = ap.get_subset(ap.eais1, rate_poly_samp, lon, lat)
-        error_poly_samp_1, _, _ = ap.get_subset(ap.eais1, error_poly_samp, lon, lat)
-        rate_line_samp_1, _, _ = ap.get_subset(ap.eais1, rate_line_samp, lon, lat)
-        error_line_samp_1, _, _ = ap.get_subset(ap.eais1, error_line_samp, lon, lat)
-        rate_dpoly_samp_1, _, _ = ap.get_subset(ap.eais1, rate_dpoly_samp, lon, lat)
-        error_dpoly_samp_1, _, _ = ap.get_subset(ap.eais1, error_dpoly_samp, lon, lat)
-        area_samp_1, lon_1, lat_1 = ap.get_subset(ap.eais1, area_samp, lon, lat)
+    ind = ap.where_isnan(key, lon, lat)
 
-        rate_poly_full_2, _, _ = ap.get_subset(ap.eais2, rate_poly, lon, lat)
-        error_poly_full_2, _, _ = ap.get_subset(ap.eais2, error_poly, lon, lat)
-        rate_line_full_2, _, _ = ap.get_subset(ap.eais2, rate_line, lon, lat)
-        error_line_full_2, _, _ = ap.get_subset(ap.eais2, error_line, lon, lat)
-        rate_dpoly_full_2, _, _ = ap.get_subset(ap.eais2, rate_dpoly, lon, lat)
-        error_dpoly_full_2, _, _ = ap.get_subset(ap.eais2, error_dpoly, lon, lat)
-        area_full_2, lon_2, lat_2 = ap.get_subset(ap.eais2, area, lon, lat)
+    rate_poly_[ind] = np.nan
+    rate_poly_err_[ind] = np.nan
+    rate_line_[ind] = np.nan
+    rate_line_err_[ind] = np.nan
+    rate_dpoly_[ind] = np.nan
+    rate_dpoly_err_[ind] = np.nan
+    area_[ind] = np.nan
+    freeboard_[ind] = np.nan
+    thickness_[ind] = np.nan
+    thickness_err_[ind] = np.nan
+    density_[ind] = np.nan
+    density_err_[ind] = np.nan
 
-        rate_poly_samp_2, _, _ = ap.get_subset(ap.eais2, rate_poly_samp, lon, lat)
-        error_poly_samp_2, _, _ = ap.get_subset(ap.eais2, error_poly_samp, lon, lat)
-        rate_line_samp_2, _, _ = ap.get_subset(ap.eais2, rate_line_samp, lon, lat)
-        error_line_samp_2, _, _ = ap.get_subset(ap.eais2, error_line_samp, lon, lat)
-        rate_dpoly_samp_2, _, _ = ap.get_subset(ap.eais2, rate_dpoly_samp, lon, lat)
-        error_dpoly_samp_2, _, _ = ap.get_subset(ap.eais2, error_dpoly_samp, lon, lat)
-        area_samp_2, lon_2, lat_2 = ap.get_subset(ap.eais2, area_samp, lon, lat)
+    # area-weighted sum -> average
+    #-----------------------------
 
-        rate_poly_full_ = np.c_[rate_poly_full_1, rate_poly_full_2]
-        error_poly_full_ = np.c_[error_poly_full_1, error_poly_full_2]
-        rate_line_full_ = np.c_[rate_line_full_1, rate_line_full_2]
-        error_line_full_ = np.c_[error_line_full_1, error_line_full_2]
-        rate_dpoly_full_ = np.c_[rate_dpoly_full_1, rate_dpoly_full_2]
-        error_dpoly_full_ = np.c_[error_dpoly_full_1, error_dpoly_full_2]
-        area_full_ = np.c_[area_full_1, area_full_2]
+    sampled_area = area_.copy()                      # full area
+    sampled_area[np.isnan(rate_poly_)] = np.nan      # sampled area
+    samp_area = np.nansum(sampled_area)              # total sampled area (m^2)
+    total_area = np.nansum(area_)                    # total area (m^2)
 
-        rate_poly_samp_ = np.c_[rate_poly_samp_1, rate_poly_samp_2]
-        error_poly_samp_ = np.c_[error_poly_samp_1, error_poly_samp_2]
-        rate_line_samp_ = np.c_[rate_line_samp_1, rate_line_samp_2]
-        error_line_samp_ = np.c_[error_line_samp_1, error_line_samp_2]
-        rate_dpoly_samp_ = np.c_[rate_dpoly_samp_1, rate_dpoly_samp_2]
-        error_dpoly_samp_ = np.c_[error_dpoly_samp_1, error_dpoly_samp_2]
-        area_samp_ = np.c_[area_samp_1, area_samp_2]
+    # sampled-area weights
+    weight = sampled_area
+    weight /= np.nansum(weight)                      # normalize sum(w) = 1
 
-    else:
-        rate_poly_full_, _, _ = ap.get_subset(region, rate_poly, lon, lat)
-        error_poly_full_, _, _ = ap.get_subset(region, error_poly, lon, lat)
-        rate_line_full_, _, _ = ap.get_subset(region, rate_line, lon, lat)
-        error_line_full_, _, _ = ap.get_subset(region, error_line, lon, lat)
-        rate_dpoly_full_, _, _ = ap.get_subset(region, rate_dpoly, lon, lat)
-        error_dpoly_full_, _, _ = ap.get_subset(region, error_dpoly, lon, lat)
-        area_full_, lon_, lat_ = ap.get_subset(region, area, lon, lat)
+    height_rate = np.nansum(weight * rate_poly_)     # m/yr
+    height_rate2 = np.nansum(weight * rate_line_)
+    height_accel = np.nansum(weight * rate_dpoly_)   # cm/yr2
 
-        rate_poly_samp_, _, _ = ap.get_subset(region, rate_poly_samp, lon, lat)
-        error_poly_samp_, _, _ = ap.get_subset(region, error_poly_samp, lon, lat)
-        rate_line_samp_, _, _ = ap.get_subset(region, rate_line_samp, lon, lat)
-        error_line_samp_, _, _ = ap.get_subset(region, error_line_samp, lon, lat)
-        rate_dpoly_samp_, _, _ = ap.get_subset(region, rate_dpoly_samp, lon, lat)
-        error_dpoly_samp_, _, _ = ap.get_subset(region, error_dpoly_samp, lon, lat)
-        area_samp_, lon_, lat_ = ap.get_subset(region, area_samp, lon, lat)
+    height_rate_err = np.sqrt(np.nansum(weight**2 * rate_poly_err_**2))
+    height_rate_err2 = np.sqrt(np.nansum(weight**2 * rate_line_err_**2))
+    height_accel_err = np.sqrt(np.nansum(weight**2 * rate_dpoly_err_**2))
 
-    # elevation rate (area-weighted sum) -> use sampled area!
-    weight = area_samp_.copy()
+    # full-area weights
+    weight = area_
     weight /= np.nansum(weight)                       # normalize sum(w) = 1
-    elev_rate = np.nansum(weight * rate_poly_samp_)   # cm/yr
-    elev_rate2 = np.nansum(weight * rate_line_samp_)  # cm/yr
 
-    # elevation error
-    elev_err = np.sqrt(np.nansum(weight**2 * error_poly_samp_**2))
-    elev_err2 = np.sqrt(np.nansum(weight**2 * error_line_samp_**2))
+    # FIXME What about the uncertainties?
+    if name == 'Wilkins':
+        rho = np.array(899.9239) 
+        thick = np.array(315.4988)
+        ratio = 1 / (1 - rho / 1028.)  # use water density
+    elif name == 'Brunt':
+        rho = np.array(856.4734)
+        thick = np.array(302.6383)
+        ratio = 1 / (1 - rho / 1028.)
+    elif name == 'Larsen D':
+        rho = np.array(854.6196)
+        thick = np.array(257.6660)
+        ratio = 1 / (1 - rho / 1028.)
+    else:
+        rho = np.nansum(weight * density_)                # kg/m^3 
+        thick = np.nansum(weight * thickness_)            # m
+        ratio = np.nansum(weight * (thickness_/freeboard_))
 
-    # volume rate (area integral) -> use full area!
-    rate_poly_full_ *= 1e-5  # cm -> km
-    rate_line_full_ *= 1e-5
-    vol_rate = np.nansum(area_full_ * rate_poly_full_)  # km3/yr
-    vol_rate2 = np.nansum(area_full_ * rate_line_full_) 
+    rho_err = np.sqrt(np.nansum(weight**2 * density_err_**2))
+    thick_err = np.sqrt(np.nansum(weight**2 * thickness_err_**2))
 
-    # volume error
-    error_poly_full_ *= 1e-5 # cm -> km
-    error_line_full_ *= 1e-5
-    vol_err = np.sqrt(np.nansum(area_full_**2 * error_poly_full_**2))
-    vol_err2 = np.sqrt(np.nansum(area_full_**2 * error_line_full_**2))
+    # Mass rate -> m' = area * rho * Z/H * h' (all average values)
+    #-------------------------------------------------------------
 
-    # acceleration -> use sampled area!
-    elev_accel = np.nansum(weight * rate_dpoly_samp_)  # cm/yr2
+    # FIXME Mass errors too small???
 
-    # acceleration error
-    accel_err = np.sqrt(np.nansum(weight**2 * error_dpoly_samp_**2))
+    # full area x full density x full ratio x sampled rates
+    mass_rate =  total_area * rho * ratio * height_rate  # kg/yr
+    mass_rate2 = total_area * rho * ratio * height_rate2
+
+    mass_rate_err = mass_rate * np.sqrt((rho_err/rho + thick_err/thick)**2 + \
+                                        (height_rate_err/height_rate)**2)
+    mass_rate_err2 = mass_rate2 * np.sqrt((rho_err/rho + thick_err/thick)**2 + \
+                                          (height_rate_err2/height_rate2)**2)
+
+    # convert units
+    #--------------------------------------------------
+
+    height_rate *= 1e2              # m/yr -> cm/yr
+    height_rate2 *= 1e2 
+    height_rate_err *= 1e2 
+    height_rate_err2 *= 1e2
+    height_accel *= 1e2
+    height_accel_err *= 1e2
+    mass_rate *= 0.001 * 1e-9       # kg/yr -> Gt/yr
+    mass_rate2 *= 0.001 * 1e-9
+    mass_rate_err *= 0.001 * 1e-9
+    mass_rate_err2 *= 0.001 * 1e-9
+    samp_area *= 1e-6               # m^2 -> km^2
+    total_area *= 1e-6 
 
     if 1:  # scale and truncate results
-        elev_err *= 3
-        elev_err2 *= 3
-        vol_err *= 3
-        vol_err2 *= 3
-        accel_err *= 3
+        height_rate_err *= 3
+        height_rate_err2 *= 3
+        height_accel_err *= 3
+        mass_rate_err *= 3
+        mass_rate_err2 *= 3
 
-        # precision -> 1 mm, .01 km3/yr, 1 mm/yr2
-        elev_rate = elev_rate.round(2)
-        elev_err = elev_err.round(2)
-        elev_rate2 = elev_rate2.round(2)
-        elev_err2 = elev_err2.round(2)
-        vol_rate = vol_rate.round(2)
-        vol_err = vol_err.round(2)
-        vol_rate2 = vol_rate2.round(2)
-        vol_err2 = vol_err2.round(2)
-        elev_accel = elev_accel.round(2)
-        accel_err = accel_err.round(2)
-        area_full_ = np.nansum(area_full_)
-        area_samp_ = np.nansum(area_samp_)
+        # precision -> 0.05 cm, 0.05 Gt/yr, 0.05 cm/yr2
+        height_rate = height_rate.round(2)
+        height_rate_err = height_rate_err.round(2)
+        height_rate2 = height_rate2.round(2)
+        height_rate_err2 = height_rate_err2.round(2)
+        height_accel = height_accel.round(2)
+        height_accel_err = height_accel_err.round(2)
+        mass_rate = mass_rate.round(2)
+        mass_rate_err = mass_rate_err.round(2)
+        mass_rate2 = mass_rate2.round(2)
+        mass_rate_err2 = mass_rate_err2.round(2)
+        rho = rho.round(2)
+        thick = thick.round(2)
 
-        # force no volume change if elevation is less than the precision
-        if np.abs(elev_rate) < 0.05:
-            vol_rate = 0.0
-        if np.abs(elev_rate2) < 0.05:
-            vol_rate2 = 0.0
+        # force no mass change if height is less than the precision
+        if np.abs(height_rate) < 0.05:
+            mass_rate = 0.0
+        if np.abs(height_rate2) < 0.05:
+            mass_rate2 = 0.0
 
-        # force error to be non-zero -> half of the precision!
-        if elev_err < 0.05:
-            elev_err = 0.05
-        if elev_err2 < 0.05:
-            elev_err2 = 0.05
-        if vol_err < 0.05:
-            vol_err = 0.05
-        if vol_err2 < 0.05:
-            vol_err2 = 0.05
-        if accel_err < 0.05:
-            accel_err = 0.05
+        # force min error to be half of the precision (non-zero)
+        if height_rate_err < 0.05:
+            height_rate_err = 0.05
+        if height_rate_err2 < 0.05:
+            height_rate_err2 = 0.05
+        if mass_rate_err < 0.05:
+            mass_rate_err = 0.05
+        if mass_rate_err2 < 0.05:
+            mass_rate_err2 = 0.05
+        if height_accel_err < 0.05:
+            height_accel_err = 0.05
 
     if 1:
-        print 'shelf:', name
-        print 'total area:', int(np.nansum(area_full_)), 'km2'
-        print 'survey area:', int(np.nansum(area_samp_)), 'km2'
-        print 'elev rate: %.1f (%.1f) +/- %.1f (%.1f) cm/yr  ' % \
-                (elev_rate, elev_rate2, elev_err, elev_err2)
-        print 'vol rate:  %.1f (%.1f) +/- %.1f (%.1f) km3/yr' % \
-                (vol_rate, vol_rate2, vol_err, vol_err2)
-        print 'elev accel: %.1f +/- %.1f cm/yr2' % (elev_accel, accel_err)
+        print name
+        print 'total area:', total_area, 'km2'
+        print 'survey area:', samp_area, 'km2'
+        print "h': %.1f (%.1f) +/- %.1f (%.1f) cm/yr  " % \
+                (height_rate, height_rate2, height_rate_err, height_rate_err2)
+        print "m':  %.1f (%.1f) +/- %.1f (%.1f) Gt/yr" % \
+                (mass_rate, mass_rate2, mass_rate_err, mass_rate_err2)
+        print "h'': %.1f +/- %.1f cm/yr2" % (height_accel, height_accel_err)
         print '-'*32
 
     # save data 
@@ -389,10 +496,13 @@ for name, region in zip(names, regions):
 
     if 1:
         fout.write('%s,%g,%g,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,' \
-                   '%.2f,%.2f\n' %
-                   (name, area_full_, area_samp_, elev_rate, elev_err,
-                    elev_rate2, elev_err2, vol_rate, vol_err, vol_rate2,
-                    vol_err2, elev_accel, accel_err))
+                   '%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\n' %
+                   (name, total_area, samp_area, rho, rho_err, thick, 
+                    thick_err, 1/ratio, height_rate, height_rate_err,
+                    height_rate2, height_rate_err2, mass_rate, mass_rate_err,
+                    mass_rate2, mass_rate_err2, height_accel, height_accel_err,
+                    )
+                   )
 
 fout.close()
 print 'done'

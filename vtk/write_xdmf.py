@@ -9,16 +9,16 @@ WITH TIME INFORMATION!
 
 # edit here ---------------------------------------------------------
 
-file_in = '/Users/fpaolo/data/shelves/h_trendfit.h5'
-file_out = 'poly_lasso.xmf'
+file_in = '/Users/fpaolo/data/shelves/dhdt_poly_movie.h5'
+file_out = 'dhdt_poly_movie.xmf'
 
 path_to_xyz = file_in + ':' + '/xyz_nodes'
 #path_to_data = file_in + ':' + '/data/dh_mean_mixed_const_xcal_%02d'
 #var_name = '/data/dh_mean_mixed_const_xcal_00'
-path_to_data = file_in + ':' + '/poly_lasso_slabs/poly_lasso_%02d'
-var_name = '/poly_lasso_slabs/poly_lasso_00'
+path_to_data = file_in + ':' + '/dpoly_lasso_slabs/dpoly_lasso_%02d'
+var_name = '/dpoly_lasso_slabs/dpoly_lasso_00'
 time_name = '/time'
-data_name = 'h(t)'
+data_name = 'Polynomial derivative dh/dt(t)'
 
 #---------------------------------------------------------------------
 
