@@ -104,7 +104,7 @@ def slave(comm):
         # Receive a message from the master
         work = comm.recv(source=0, tag=MPI.ANY_TAG, status=status)
 
-        # Check the tag of the received message.
+        # Check the tag of the received message
         if status.Get_tag() == DIETAG: break 
 
         # Do the work

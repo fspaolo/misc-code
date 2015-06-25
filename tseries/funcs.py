@@ -19,6 +19,8 @@ import matplotlib.pyplot as plt
 
 import altimpy as ap
 
+pd.options.mode.chained_assignment = None  # default='warn'
+
 
 class TimeSeriesGrid(tb.IsDescription):
     satname = tb.StringCol(20, pos=1)
@@ -100,6 +102,7 @@ class OutputContainers(object):
         self.n_da = fout.create_carray('/', 'n_da', atom, (nt,ny,nx), 
             title, filters, chunkshape=chunkshape)
         # this is craeted the first time the class is instantiated!!!
+        # DON'T CHANGE THIS!!!
         self.dh_mean_mixed_const = fout.create_carray('/', 
                 'dh_mean_mixed_const', atom, (nt,ny,nx), 
                 title, filters, chunkshape=chunkshape)
@@ -251,6 +254,30 @@ def create_df_with_ts(time1, time2, ts, **kw):
     return df
 
 
+def create_df_with_ts_by_first(time1, time2, ts, **kw):
+    """
+    Create a DataFrame with all the different time1-TS.
+    time1, time2 : integer representation of time: YYYYMMDD
+    ts : time series for 1-grid-cell/1-sat/all-times
+    """
+    dtime1 = ap.num2date(time1)
+    dtime2 = ap.num2date(time2)
+    dtime_range = full_dtime_range(dtime1, dtime2, **kw)
+    df = pn.DataFrame(index=dtime_range, columns=dtime_range) # empty DF
+    # fill df with 1 `reftime-TS` at a time
+    if not np.alltrue(np.isnan(ts)):
+        for dt_ref in dtime_range:
+            ind, = np.where(dtime1 == dt_ref)
+            df[dt_ref] = pn.Series(ts[ind], index=dtime2[ind])
+            df[dt_ref][dt_ref] = np.nan  # diagonal
+            '''
+            if not np.alltrue(df[dt_ref].isnull().values):
+                df[dt_ref][dt_ref] = 0.
+            '''
+    return df
+
+
+
 def redo_df(df):
     return pd.DataFrame(df.values, index=df.index, columns=df.columns)
 
@@ -382,6 +409,49 @@ def filter_length(df, perc):
             df[c] = np.nan
 
 
+def prop_err_by_first(df, col_ref):
+    """
+    Propagate the error due to the referencing procedure.
+
+    Parameters
+    ----------
+    df : DataFrame
+        Pandas DataFrame containing all multi-reference time series, i.e.,
+        the matrix representation of all forward [and backward] combinations.
+    col_ref : key
+        The column to be used as the reference time series.
+
+    Notes
+    -----
+    reference one ts to another:
+        x(t) = x1, x2, ..., xn
+        y(t) = y1, y2, ..., yn
+    error for differences: 
+        d1 = x1 - y1 
+        e_d1 = sqrt(e_x1**2 + e_y1**2)
+    error for offset: 
+        D = (d1 + d2 + ... + dn) / n
+        e_D = sqrt(e_d1**2 + e_d2**2 + ... + e_dn**2) / n
+            = sqrt(e_x1**2 + e_y1**2 + ... + e_xn**2 + e_yn**2) / n
+    error for referenced h:
+        h1' = h1 + D
+        e_h1' = sqrt(e_h1**2 + e_D**2)
+
+    See also
+    --------
+    ref_by_offset
+    ref_by_first
+    prop_err_by_first
+    prop_obs_by_offset
+    prop_obs_by_first
+
+    """
+    error_ref = df[col_ref][1:]             # all elems but first one
+    cols = df.columns[df.columns!=col_ref]  # all TS but TS_ref
+    for c, e in zip(cols, error_ref):
+        df[c] = np.sqrt(e**2 + df[c]**2)
+
+
 # DEPRECATED (use 'altimpy')
 def propagate_error(df, by='offset', dynamic_ref=True):
     """
@@ -398,6 +468,7 @@ def propagate_error(df, by='offset', dynamic_ref=True):
         # use TS with first time1 as ref
         error_ref = df[df.columns[0]][1:]    # all elems but first one
         cols = df.columns[1:]                # all TS but the first one
+
         for c, e in zip(cols, error_ref):
             df[c] = np.sqrt(e**2 + df[c]**2)
 
@@ -410,6 +481,7 @@ def propagate_error(df, by='offset', dynamic_ref=True):
             col_ref = df.columns[0]
         error_ref = df[col_ref]                   # TS_ref
         cols = df.columns[df.columns!=col_ref]    # all TS but TS_ref
+
         for c in cols:
             # only use the *coincident* non-null entries
             ind, = np.where(error_ref.notnull() & df[c].notnull())
@@ -477,7 +549,7 @@ def weighted_average(df, df_nobs):
     return ts_mean
 
 
-# DEPRECATED (use 'altimpy')
+# NOTE DEPRECATED (use 'altimpy')
 def weighted_average_error(df, df_nobs):
     """
     Calculate the unbiased weighted average time series for the standard error,

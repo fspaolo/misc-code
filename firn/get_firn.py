@@ -4,56 +4,106 @@ import tables as tb
 import pandas as pd
 import netCDF4 as nc
 import matplotlib.pyplot as plt
+from numba import jit
 
 import altimpy as ap
 
-# firn densification model
-FILE_FDM = 'FM_ANT3K27_1979-2011.nc'
+FILE_FIRN = '/Users/fpaolo/data/firn/FM_ANT3K27_1979-2011.nc'
+FILE_ALTIM = '/Users/fpaolo/data/shelves/all_19920716_20111015_shelf_tide_grids_mts.h5.ice_oce'
+FILE_OUT = '/Users/fpaolo/data/shelves/firn_ice_shelves.h5'
 
-# altimeter database
-FILE_ALT = '/Users/fpaolo/data/shelves/all_19920716_20111015_shelf_tide_grids_mts.h5'
 
-f1 = nc.Dataset(FILE_FDM)
+def as_frame(data, z, y, x):
+    """3d Array -> Data Frame."""
+    try:
+        return pd.Panel(data, items=z, major_axis=y, minor_axis=x
+                        ).to_frame(filter_observations=False).T
+    except:
+        raise
+        print 'already a DataFrame'
+        return data
+
+
+def as_array(data):
+    """Data Frame -> 3d Array."""
+    try:
+        return data.T.to_panel().values
+    except:
+        print 'already an Array'
+        return data
+
+
+# array_to_array one ts at a time so computer doesn't freeze!
+@jit
+def array_to_array(arr_a, arr_b, i_a, j_a, i_b, j_b):
+    n = 1
+    for ia, ja, ib, jb in zip(i_a, j_a, i_b, j_b):
+        arr_a[:, ia, ja] = arr_b[:, ib, jb]
+        print 'time series #', n 
+        n += 1
+    return arr_a
+
+
+# read firn
+print 'reading firn...'
+f1 = nc.Dataset(FILE_FIRN)
 d = f1.variables
-h_fdm = d['zs']
-t_fdm = d['time'][:]   # years
-lon_fdm = d['lon'][:]  # 2d
-lat_fdm = d['lat'][:]  # 2d
+h_firn = d['zs'] #[:]
+t_firn = d['time'][:]   # years
+lon_firn = d['lon'][:]  # 2d
+lat_firn = d['lat'][:]  # 2d
 
-f2 = tb.openFile(FILE_ALT, 'a')
-h_alt = f2.root.dh_mean_corr_short_all[:]
-t_alt = ap.num2year(f2.root.time_all[:])
-lat_alt = f2.root.lat[:]  # 1d
-lon_alt = f2.root.lon[:]  # 1d
-lon_alt = ap.lon_180_360(lon_alt, inverse=True)
+# read altim
+print 'reading altim...'
+f2 = tb.openFile(FILE_ALTIM, 'a')
+h_altim = f2.root.dh_mean_mixed_const_xcal[:-1,...]  # minus last to agree with firn ts
+t_altim = ap.num2year(f2.root.time_xcal[:-1])  # years
+lat_altim = f2.root.lat[:]      # 1d
+lon_altim = f2.root.lon[:]      # 1d
+lon_altim = ap.lon_180_360(lon_altim, inverse=True)
 
-# get lon/lat of non-null altim ts
-h_alt[np.isnan(h_alt)] = 0
-h_alt = h_alt.sum(axis=0)            # 3d -> 2d
-i_alt, j_alt = np.where(h_alt != 0)  # 2d indices
-lonlat_alt = np.column_stack((lon_alt[j_alt], lat_alt[i_alt]))
+# get lon/lat only of complete (no gaps) altim ts
+h_altim = h_altim.sum(axis=0)                    # 3d -> 2d
+i_altim, j_altim = np.where(~np.isnan(h_altim))  # 2d indices
+lonlat_altim = np.column_stack((lon_altim[j_altim], lat_altim[i_altim]))
 
-# find nearest points in the firn model
-i_fdm, j_fdm = ap.find_nearest2(lon_fdm, lat_fdm, lonlat_alt)
-(k1,k2), = ap.find_nearest(t_fdm, [t_alt[0], t_alt[-1]])
+# find nearest lon/lat in the firn model
+i_firn, j_firn = ap.find_nearest2(lon_firn, lat_firn, lonlat_altim)
 
-nt = k2 - k1 + 1
-ny, nx = h_alt.shape
+# find nearest altim times in the firn times
+k_firn, = ap.find_nearest(t_firn, t_altim)
 
-h_fdm_new = f2.createCArray('/', 'h_firn', shape=(nt,ny,nx), 
-                            atom=tb.atom.Float64Atom(dflt=np.nan)) 
-t_fdm_new = f2.createCArray('/', 'time_firn', shape=(nt,), 
-                            atom=tb.atom.Int32Atom(dflt=0))
+# new firn grid => same altim resolution with original firn time
+nt, ny, nx = h_firn.shape[0], h_altim.shape[0], h_altim.shape[1]
+h_firn_new = np.full((nt, ny, nx), np.nan, dtype='f8')
 
-# save one ts at a time (memory efficient!)
-n = 1
-for i1, j1, i2, j2 in zip(i_alt, j_alt, i_fdm, j_fdm):
-    h_fdm_new[:, i1, j1] = h_fdm[k1:k2+1, i2, j2]
-    print 'time series #', n 
-    n += 1
+# space interpolation (out-of-core)
+#h_firn_new[:, i_altim, j_altim] = h_firn[:, i_firn, j_firn]
+h_firn_new = array_to_array(h_firn_new, h_firn, i_altim, j_altim, i_firn, j_firn)
 
-t_fdm_new[:] = ap.year2num(t_fdm[k1:k2+1])  # chose time conversion !!!
+del h_firn
 
-f2.flush()
+# 3-month average, and time interpolation
+print 'smoothing firn...'
+h_firn_new = as_frame(h_firn_new, t_firn, lat_altim, lon_altim)
+h_firn_smooth = pd.rolling_mean(h_firn_new, 45, center=True)
+h_firn_smooth = h_firn_smooth.iloc[k_firn,:]
+
+# frame -> array
+h_firn_new = as_array(h_firn_new)
+h_firn_smooth = as_array(h_firn_smooth)
+
+print 'saving...'
+f3 = tb.open_file(FILE_OUT, 'w')
+f3.create_array('/', 'firn', h_firn_new)
+f3.create_array('/', 'firn_smooth', h_firn_smooth)
+f3.create_array('/', 'time', t_firn)
+f3.create_array('/', 'time_smooth', t_altim)
+f3.create_array('/', 'lon', lon_altim)
+f3.create_array('/', 'lat', lat_altim)
+print 'done.'
+
+f3.flush()
+f3.close()
 f2.close()
 f1.close()

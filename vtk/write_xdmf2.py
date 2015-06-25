@@ -2,15 +2,15 @@ import tables as tb
 
 '''
 To generate the XDMF to read HDF5 file, see:
-/Users/fpaolo/code/postproc/post_proc.py
+/Users/fpaolo/code/postproc/postproc.py
 
-WITHOUT TIME INFORMATION => FOR COORDS!
+WITHOUT TIME INFORMATION => FOR COORDS GRID ORIENTED IN SPACE (W/XYZ)!
 '''
 
 # edit here ---------------------------------------------------------
 
-file_in = '/Users/fpaolo/data/shelves/h_raw_ice_oce4.h5'
-file_out = 'coords.xmf'
+file_in = '/Users/fpaolo/data/shelves/h_postproc.h5'
+file_out = 'coords_raw.xmf'
 
 path_to_xyz = file_in + ':' + '/xyz_nodes'
 path_to_lon = file_in + ':' + '/xx'
@@ -30,21 +30,25 @@ template = """\
   <Domain>
   <Grid Name="Mesh" GridType="Uniform">
     <Topology TopologyType="3DSMesh" NumberOfElements="{0} {1} {2}"/>
+
     <Geometry GeometryType="XYZ">
       <DataItem Name="Coordinates" Dimensions="{3} {4}" NumberType="Float" Precision="4" Format="HDF">
         PATH_TO_XYZ
       </DataItem>
     </Geometry>
+
     <Attribute Name="Longitude" AttributeType="Scalar" Center="Cell">
       <DataItem Dimensions="{5} {6} {7}" NumberType="Float" Precision="4" Format="HDF">
         PATH_TO_LON
       </DataItem>
     </Attribute>
+
     <Attribute Name="latitude" AttributeType="Scalar" Center="Cell">
       <DataItem Dimensions="{8} {9} {10}" NumberType="Float" Precision="4" Format="HDF">
         PATH_TO_LAT
       </DataItem>
     </Attribute>
+
   </Grid>
   </Domain>
 </Xdmf>

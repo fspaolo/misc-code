@@ -14,10 +14,23 @@
 !
 ! (1) in practical terms GMT represents the same time reference as UTC.
 ! 
-! Usage
-! -----
-! $ gfortran -fconvert=big-endian readidr_ra2.f90 -o readidr_ra2 
-! $ ./readidr_ra2 -h
+! Compile and run
+! ---------------
+! $ gfortran -fconvert=big-endian readidr_ra1.f90 -o readidr_ra1 
+! $ ./readidr_ra1 -h
+! 
+! usage: ./readidr_ra1 [-h] [-v] [-b] [-i 1|2|3] [-d /output/dir] file1 file2 ...
+! 
+! required arguments:
+!   files       input files to read [ex: /path/to/files/*.ID04]
+!               note: specify files always at the end!
+! 
+! optional arguments:
+!   -h, --help  print usage information and exit
+!   -v          for verbose [default: run silent]
+!   -b          for binary output files [default: ASCII]
+!   -i 1|2|3    use orbit increment 1, 2 or 3 [default: 3]
+!   -d          the output dir [default: same as input file]
 !
 ! Notes
 ! ------
@@ -27,9 +40,6 @@
 !
 ! For IDR format see:
 ! http://icesat4.gsfc.nasa.gov/data_products/level2.php
-!
-! For examples on how to use the code see:
-! http://fspaolo.net/code
 !
 ! Obs
 ! ----

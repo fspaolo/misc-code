@@ -4,23 +4,26 @@ import tables as tb
 To generate the XDMF to read HDF5 file, see:
 /Users/fpaolo/code/postproc/post_proc.py
 
-WITH TIME INFORMATION!
+WITH TIME INFORMATION => for a 3D array being z,y,x = time,lat,lon
 '''
 
 # edit here ---------------------------------------------------------
 
-file_in = '/Users/fpaolo/data/shelves/dhdt_poly_movie.h5'
-file_out = 'dhdt_poly_movie.xmf'
+file_in = '/Users/fpaolo/data/shelves/h_postproc.h5.byfirst3_.slabs'
+file_out = 'h_raw_final.xmf'
 
-path_to_xyz = file_in + ':' + '/xyz_nodes'
-#path_to_data = file_in + ':' + '/data/dh_mean_mixed_const_xcal_%02d'
-#var_name = '/data/dh_mean_mixed_const_xcal_00'
-path_to_data = file_in + ':' + '/dpoly_lasso_slabs/dpoly_lasso_%02d'
-var_name = '/dpoly_lasso_slabs/dpoly_lasso_00'
-time_name = '/time'
-data_name = 'Polynomial derivative dh/dt(t)'
+time = '/time'
+xyz = '/xyz_nodes'
+data = '/data/dh_mean_mixed_const_xcal_ib_sl'  # without the *_nn*
+name = 'BS/IB/SL-corrected h(t)'
+
+# TODO Set the units in here: m or cm or...
 
 #---------------------------------------------------------------------
+
+path_to_xyz = file_in + ':' + xyz 
+path_to_data = file_in + ':' + data + '_%02d'
+data_name = data + '_00'
 
 # XDMF template (do not edit)
 
@@ -37,17 +40,19 @@ inner = """\
    <Grid Name="Mesh" GridType="Uniform">
      <Time Value="%f" />
      <Topology TopologyType="3DSMesh" NumberOfElements="{0} {1} {2}"/>
+
      <Geometry GeometryType="XYZ">
        <DataItem Name="Coordinates" Dimensions="{3} {4}" NumberType="Float" Precision="4" Format="HDF">
          PATH_TO_XYZ
        </DataItem>
      </Geometry>
     
-     <Attribute Name="DATA_NAME" AttributeType="Scalar" Center="Cell">
+     <Attribute Name="NAME" AttributeType="Scalar" Center="Cell">
        <DataItem Dimensions="{5} {6} {7}" NumberType="Float" Precision="4" Format="HDF">
          PATH_TO_DATA
        </DataItem>
      </Attribute>
+
    </Grid>
 
 """
@@ -60,19 +65,21 @@ tail = """\
 
 inner = inner.replace('PATH_TO_XYZ', path_to_xyz)
 inner = inner.replace('PATH_TO_DATA', path_to_data)
-inner = inner.replace('DATA_NAME', data_name)
+inner = inner.replace('NAME', name)
 
 # get info from hdf5
 with tb.open_file(file_in, 'r') as ff:
     coords = ff.root.xyz_nodes
     coord_rows, coord_cols = coords.shape  # N x 3
-    ny, nx = ff.get_node(var_name).shape
-    time = ff.get_node(time_name)[:]
+    ny, nx = ff.get_node(data_name).shape
+    time_ = ff.get_node(time)[:]
 
 # write info to xdmf
 with open(file_out, 'w') as f:
     f.write(head)
     inner = inner.format(ny+1, nx+1, 1, coord_rows, coord_cols, ny, nx, 0)
-    for i, t in enumerate(time):
+    for i, t in enumerate(time_):
         f.write(inner % (t, i))
     f.write(tail)
+
+print 'out ->', file_out

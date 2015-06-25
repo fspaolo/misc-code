@@ -33,10 +33,12 @@ from funcs import *
 # global variables
 #-------------------------------------------------------------------------
 
-PLOT = True
+FNAME_OUT = '/Users/fpaolo/data/shelves/offset_absval.h5.byfirst'
+
+PLOT = False
 PLOT_TS = False
 SAVE_TO_FILE = True
-DETREND = False                       # True for time-series offset
+DETREND = False                       # True for time-series offset only
 FILTER = False                        # HP-filter before computing offset
 SAT_BIAS = True                      # True=inter-satellite bias, False=time-series offset
 LINEAR_FIT = False                     # True = fits a line to the overlaps, False = uses absolute vals
@@ -46,7 +48,6 @@ VAR_TO_CALIBRATE = 'dh_mean'
 #VAR_TO_CALIBRATE = 'dg_mean'
 #VAR_TO_CALIBRATE = 'dh_mean_mixed_const'
 #VAR_TO_CALIBRATE = 'dh_mean_short_const'
-FNAME_OUT = 'offset_absval.h5'
 
 LON, LAT = 186.375, -79.375  # check this before and after bs corr
 
@@ -77,10 +78,10 @@ def main():
     t = ap.num2year(time)
 
     if SUBSET: # get subset
-        ts, lon2, lat2 = ap.get_subset(ap.ross, ts, lon, lat)
-        err, lon2, lat2 = ap.get_subset(ap.ross, err, lon, lat)
-        n_ad, lon2, lat2 = ap.get_subset(ap.ross, n_ad, lon, lat)
-        n_da, lon2, lat2 = ap.get_subset(ap.ross, n_da, lon, lat)
+        ts, lon2, lat2 = ap.get_subset(ap.amundsen, ts, lon, lat)
+        err, lon2, lat2 = ap.get_subset(ap.amundsen, err, lon, lat)
+        n_ad, lon2, lat2 = ap.get_subset(ap.amundsen, n_ad, lon, lat)
+        n_da, lon2, lat2 = ap.get_subset(ap.amundsen, n_da, lon, lat)
         lon, lat = lon2, lat2
 
     xx, yy = np.meshgrid(lon, lat)
@@ -152,10 +153,11 @@ def main():
                         s1 = ap.referenced(s1, to='first')
                         s2 = ap.referenced(s2, to='first')
                         s1[0], s2[0] = np.nan, np.nan # remove first values
-                        offset = (s1 - s2).mean()
+                        offset = np.nanmean(s1 - s2)
+
                     #pd.concat((s1, s2), axis=1).plot(marker='o')
                 else:
-                    offset = (var['ers1'] - var['ers2']).mean()
+                    offset = np.nanmean(var['ers1'] - var['ers2'])
                 offset_12[i,j] = offset
             else:
                 no_overlap_12 += 1
@@ -177,20 +179,21 @@ def main():
                         s2 = ap.referenced(s2, to='first')
                         s3 = ap.referenced(s3, to='first')
                         s2[0], s3[0] = np.nan, np.nan
-                        offset = (s2 - s3).mean()
+                        offset = np.nanmean(s2 - s3)
                     #pd.concat((s2, s3), axis=1).plot(marker='o')
                     #plt.show()
                 else:
-                    offset = (var['ers2'] - var['envi']).mean()
+                    offset = np.nanmean(var['ers2'] - var['envi'])
                 offset_23[i,j] = offset 
             else:
                 no_overlap_23 += 1
+
             #---------------------------------------------------
 
     mean_offset_12 = np.nanmean(offset_12)
-    median_offset_12 = np.median(offset_12[~np.isnan(offset_12)])
+    median_offset_12 = np.nanmedian(offset_12)
     mean_offset_23 = np.nanmean(offset_23)
-    median_offset_23 = np.median(offset_23[~np.isnan(offset_23)])
+    median_offset_23 = np.nanmedian(offset_23)
 
     if SAVE_TO_FILE:
         fout = tb.open_file(FNAME_OUT, 'w')
@@ -203,20 +206,20 @@ def main():
     if PLOT:
         plt.figure()
         plt.subplot(211)
-        offset_12 = ap.med_filt(offset_12, 3, 3)
-        plt.imshow(offset_12, origin='lower', interpolation='nearest', vmin=-1.8, vmax=1.8)
+        offset_12 = ap.median_filt(offset_12, 3, 3)
+        plt.imshow(offset_12, origin='lower', interpolation='nearest', vmin=-.5, vmax=.5)
         plt.title('ERS1-ERS2')
         plt.colorbar(shrink=0.8)
         plt.subplot(212)
-        offset_23 = ap.med_filt(offset_23, 3, 3)
-        plt.imshow(offset_23, origin='lower', interpolation='nearest', vmin=-1.8, vmax=1.8)
+        offset_23 = ap.median_filt(offset_23, 3, 3)
+        plt.imshow(offset_23, origin='lower', interpolation='nearest', vmin=-.5, vmax=.5)
         plt.title('ERS2-Envisat')
         #plt.colorbar(shrink=0.3, orientation='h')
         plt.colorbar(shrink=0.8)
         plt.figure()
         plt.subplot(121)
         o12 = offset_12[~np.isnan(offset_12)]
-        plt.hist(o12, bins=len(o12)/20)
+        plt.hist(o12, bins=100)
         plt.title('ERS1-ERS2')
         ax = plt.gca()
         ap.intitle('mean/median = %.2f/%.2f m' % (mean_offset_12, median_offset_12), 
@@ -224,7 +227,7 @@ def main():
         plt.xlim(-1, 1)
         plt.subplot(122)
         o23 = offset_23[~np.isnan(offset_23)]
-        plt.hist(o23, bins=len(o23)/20)
+        plt.hist(o23, bins=100)
         plt.title('ERS2-Envisat')
         ax = plt.gca()
         ap.intitle('mean/median = %.2f/%.2f m' % (mean_offset_23, median_offset_23),

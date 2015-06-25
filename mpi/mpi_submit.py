@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+"""
+Parallel application with simple partioning (unbalanced load)
+
+"""
+# Fernando Paolo <fpaolo@ucsd.edu>
+# Jan 15, 2013
 
 import os
 import sys

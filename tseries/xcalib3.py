@@ -188,17 +188,17 @@ def main():
                 # 'dflt=NaN' is important!
                 atom = tb.Atom.from_type('float64', dflt=np.nan)  
                 filters = tb.Filters(complib='zlib', complevel=9)
-                c1 = din.file.createCArray('/', ERR1_CALIBRATED, atom, 
+                c1 = din.file.create_carray('/', ERR1_CALIBRATED, atom, 
                                            (N,ny,nx), '', filters)
-                c2 = din.file.createCArray('/', ERR2_CALIBRATED, atom, 
+                c2 = din.file.create_carray('/', ERR2_CALIBRATED, atom, 
                                            (N,ny,nx), '', filters)
-                c3 = din.file.createCArray('/', ERR3_CALIBRATED, atom, 
+                c3 = din.file.create_carray('/', ERR3_CALIBRATED, atom, 
                                            (N,ny,nx), '', filters)
-                c4 = din.file.createCArray('/', ERR4_CALIBRATED, atom, 
+                c4 = din.file.create_carray('/', ERR4_CALIBRATED, atom, 
                                            (N,ny,nx), '', filters)
-                c5 = din.file.createCArray('/', NAD_CALIBRATED, atom, 
+                c5 = din.file.create_carray('/', NAD_CALIBRATED, atom, 
                                            (N,ny,nx), '', filters)
-                c6 = din.file.createCArray('/', NDA_CALIBRATED, atom, 
+                c6 = din.file.create_carray('/', NDA_CALIBRATED, atom, 
                                            (N,ny,nx), '', filters)
 
             c1[:,i,j] = err1[ERR1_CALIBRATED].values

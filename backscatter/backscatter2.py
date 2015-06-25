@@ -31,7 +31,7 @@ from funcs import plot_rs, plot_ts, plot_map
 # global variables
 #-------------------------------------------------------------------------
 
-PLOT_TS = False    # R(t) and S(t) included
+PLOT_TS = True    # R(t) and S(t) included
 PLOT_MAP = False
 SAVE_TO_FILE = True
 DIFF = False       # False=dH/dG (abs vals: MIX), True=DdH/DdG (diff: SHORT)

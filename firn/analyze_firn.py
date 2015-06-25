@@ -4,14 +4,16 @@ import tables as tb
 import pandas as pd
 import datetime as dt
 import matplotlib.pyplot as plt
+import seaborn as sns
 import altimpy as ap
 
-fname = '/Users/fpaolo/data/shelves/all_19920716_20111015_shelf_tide_grids_mts.h5'
+#fname = '/Volumes/RADARALT/fpaolo/data/shelves/all_19920716_20111015_shelf_tide_grids_mts.h5'
+fname = '/Users/fpaolo/data/shelves/all_19920716_20111015_shelf_tide_grids_mts.h5.ice_oce'
 
 def gradient(y, dt=.25):
     return np.gradient(y.values, dt)
 
-with tb.openFile(fname) as f:
+with tb.open_file(fname) as f:
 
     alt0 = f.root.dh_mean_xcal[:]
     #alt0 = f.root.dh_mean_xcal_short_const[:]
@@ -110,7 +112,7 @@ with tb.openFile(fname) as f:
     plt.xlabel('Altimetry dh/dt (m/yr)')
     #plt.ylabel('Firn model, elevation (m)')
     #plt.savefig('scatter_bs_avg.png', bbox_inches='tight')
-    plt.savefig('altxfirn.png', bbox_inches='tight')
+    #plt.savefig('altxfirn.png', bbox_inches='tight')
     plt.show()
 
     # correlation of trends (m/yr)

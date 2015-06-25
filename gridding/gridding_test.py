@@ -91,11 +91,12 @@ def main():
 
     #pl.hexbin(x, y, gridsize=20)
     
-    ### gridding scattered pts
+    ### gridding scattered points
     #----------------------------------------------------------------
-    zz = griddata((x, y), z, (xi[None,:], yi[:,None]), method='linear') # good!!!
+    zz = griddata((x, y), z, (xi[None,:], yi[:,None]), method='linear') # <<< good!!!
+    zz = griddata((x, y), z, (xx, yy), method='linear')                 # <<< good!!!
     
-    #zz = ml.griddata(x, y, z, xi, yi, interp='nn')                     # good!!!
+    #zz = ml.griddata(x, y, z, xi, yi, interp='nn')                     # <<< good!!!
 
     #func = interp2d(x, y, z, kind='linear')
     #zz = func(xi, yi)
@@ -117,7 +118,7 @@ def main():
     ### regrindding (resample grid)
     #----------------------------------------------------------------
     #_, _, xx, yy = make_grid(x, y, 100, 100)
-    zz = interp(zz, xi, yi, xx, yy, order=1)                          # good!!!
+    zz = interp(zz, xi, yi, xx, yy, order=1)                          # <<< good!!!
 
     #rbs = RectBivariateSpline(xi, yi, zz, kx=3, ky=3)
     #xi, yi, _, _ = make_grid(x, y, 100, 100)

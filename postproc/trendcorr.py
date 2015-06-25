@@ -1,3 +1,8 @@
+"""
+Apply local SL/IB to 2d fields (dh/dt) at grid-cell level.
+
+"""
+
 import numpy as np
 import tables as tb
 import pandas as pd
@@ -7,7 +12,7 @@ from scipy.io import loadmat
 from mpl_toolkits.basemap import interp
 from astropy.convolution import convolve, Gaussian2DKernel
 
-FILE_DHDT = '/Users/fpaolo/data/shelves/h_trendfit.h5'
+FILE_DHDT = '/Users/fpaolo/data/shelves/h_trendfit.h5.byfirst3_'
 FILE_IB = '/Users/fpaolo/data/ibe/DPDT_data.mat'
 FILE_SL = '/Users/fpaolo/data/sealevel/aviso/MSL_Map_MERGED_Global_IB_RWT_NoGIA_Adjust.nc' 
 
@@ -18,15 +23,13 @@ lon = fin.root.lon[:]
 lat = fin.root.lat[:]
 poly_lasso_rate = fin.root.poly_lasso_rate[:]  # m/yr
 line_lstsq_rate = fin.root.line_lstsq_rate[:]
-poly_lasso_rate_err = fin.root.poly_lasso_rate_error[:]  # m/yr
-line_lstsq_rate_err = fin.root.line_lstsq_rate_error[:]
 
 xx, yy = np.meshgrid(lon, lat)
 
 if 1:  # plot the before
     plt.figure()
     x = poly_lasso_rate.copy()
-    plt.imshow(x, origin='lower', interpolation='none', vmin=-.1, vmax=.1)
+    plt.imshow(x, origin='lower', interpolation='nearest', vmin=-.1, vmax=.1)
 
 # IB correction (inverse-barometer trend)
 #-----------------------------------------------------------------
@@ -47,8 +50,6 @@ line_lstsq_rate -= ib_rate_
 
 # SL correction (regional sea-level trend)
 #-----------------------------------------------------------------
-
-SL_ERR = 2 * 1e-3  # m/yr, local error in MSL slopes varies from 1 to 2 mm/yr
 
 # read SL
 if 0:
@@ -91,23 +92,17 @@ if 1: # smooth
 poly_lasso_rate -= sl_rate_ 
 line_lstsq_rate -= sl_rate_
 
-# add error
-poly_lasso_rate_err = np.sqrt(poly_lasso_rate_err**2 + SL_ERR**2)
-line_lstsq_rate_err = np.sqrt(line_lstsq_rate_err**2 + SL_ERR**2)
-
 #---------------------------------------------------------------------
 
 if 1:  # plot the after
     plt.figure()
-    plt.imshow(poly_lasso_rate, origin='lower', interpolation='none', vmin=-.1, vmax=.1)
+    plt.imshow(poly_lasso_rate, origin='lower', interpolation='nearest', vmin=-.1, vmax=.1)
     plt.show()
 
 # save data
-if 0:
+if 1:
     fin.create_array('/', 'poly_lasso_rate_ib_sl', poly_lasso_rate)
     fin.create_array('/', 'line_lstsq_rate_ib_sl', line_lstsq_rate)
-    fin.create_array('/', 'poly_lasso_rate_ib_sl_err', poly_lasso_rate_err)
-    fin.create_array('/', 'line_lstsq_rate_ib_sl_err', line_lstsq_rate_err)
     fin.flush()
     print 'file out ->', FILE_DHDT
 

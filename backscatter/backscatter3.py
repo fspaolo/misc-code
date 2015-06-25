@@ -158,13 +158,13 @@ def main():
                 atom = tb.Atom.from_type('float64', dflt=np.nan)
                 filters = tb.Filters(complib='zlib', complevel=9)
                 try:
-                    c1 = din.file.createCArray('/', SAVE_AS_NAME, atom, 
+                    c1 = din.file.create_carray('/', SAVE_AS_NAME, atom, 
                                                (nt,ny,nx), '', filters)
                 except:
                     c1 = din.file.getNode('/', SAVE_AS_NAME)
-                c2 = din.file.createCArray('/', R_NAME, atom, 
+                c2 = din.file.create_carray('/', R_NAME, atom, 
                                            (nt,ny,nx), '', filters)
-                c3 = din.file.createCArray('/', S_NAME, atom, 
+                c3 = din.file.create_carray('/', S_NAME, atom, 
                                            (nt,ny,nx), '', filters)
             c1[:,i,j] = dh_cor
 

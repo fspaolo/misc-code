@@ -31,15 +31,19 @@ from funcs import *
 # global variables
 #-------------------------------------------------------------------------
 
-PLOT = True
-SAVE_TO_FILE = False
+PLOT = False
+SAVE_TO_FILE = True
 SAT_NAMES = ['ers1', 'ers2', 'envi']  # important for the order!
+
 VAR_TO_CALIBRATE = 'dh_mean'
 VAR_CALIBRATED = 'dh_mean_xcal'
+
 #VAR_TO_CALIBRATE = 'dg_mean'
 #VAR_CALIBRATED = 'dg_mean_xcal'
+
 #VAR_TO_CALIBRATE = 'dh_mean_mixed_const'
 #VAR_CALIBRATED = 'dh_mean_mixed_const_xcal'
+
 #VAR_TO_CALIBRATE = 'dh_mean_short_const'
 #VAR_CALIBRATED = 'dh_mean_short_const_xcal'
 
@@ -95,16 +99,24 @@ def main():
                         var[col][ind]= np.nan
             '''
 
+            if PLOT and (var.count().sum() > 10):
+                print 'grid-cell:', i, j
+                var.plot(linewidth=3, figsize=(9, 3), legend=False)
+                plt.title('Before cross-calibration')
+
             # 2) only crosscalibrate if time series overlap
             x = pd.notnull(var)
             overlap_12 = x['ers1'] & x['ers2']
             overlap_23 = x['ers2'] & x['envi']
             if np.sometrue(overlap_12) and np.sometrue(overlap_23):
                 # add offset (mean of diff) of overlaping parts
-                var['ers2'] += (var['ers1'] - var['ers2']).mean()
-                var['envi'] += (var['ers2'] - var['envi']).mean()
+                offset_12 = (var['ers1'] - var['ers2']).mean()
+                offset_23 = (var['ers2'] - var['envi']).mean()
+                offset_13 = offset_12 + offset_23
+                var['ers2'] += offset_12 
+                var['envi'] += offset_13
             else:
-                # if any don't overlap, discard all time series!
+                # if any doesn't overlap, discard all time series!
                 var[:] = np.nan
                 no_overlap += 1
                 print 'NO OVERLAPPING FOUND:', i, j
@@ -113,10 +125,9 @@ def main():
                 print 'grid-cell:', i, j
                 nij.plot(legend=False)
                 var.plot(linewidth=3, figsize=(9, 3), legend=False)
-                plt.title('Elevation change, dh')
+                plt.title('After cross-calibration')
                 plt.ylabel('m')
-                plt.savefig('crosscalib_dh.png')
-                plt.show()
+                #plt.savefig('crosscalib_dh.png')
 
             # 3) average the calibrated cols (only the overlaps)
             # weights for the overlapping parts
@@ -133,9 +144,9 @@ def main():
             if PLOT and (var.count().sum() > 10):
                 print 'grid-cell:', i, j
                 var[VAR_CALIBRATED].plot(linewidth=3, figsize=(9, 3))
-                plt.title('Elevation change, dh')
+                plt.title('After averaging')
                 plt.ylabel('m')
-                plt.savefig('crosscalib_dh.png')
+                #plt.savefig('crosscalib_dh.png')
                 plt.show()
 
             # CODE REVISED TILL HERE ON DEC 18, 2012 -> CODE OK!
@@ -163,12 +174,12 @@ def main():
                 atom = tb.Atom.from_type('float64', dflt=np.nan)  
                 filters = tb.Filters(complib='zlib', complevel=9)
                 try:
-                    t = din.file.createCArray('/', 'time_xcal', atom, (N,), '', 
+                    t = din.file.create_carray('/', 'time_xcal', atom, (N,), '', 
                                                filters)
                     t[:] = time_xcal
                 except:
                     pass
-                c1 = din.file.createCArray('/', VAR_CALIBRATED, atom, 
+                c1 = din.file.create_carray('/', VAR_CALIBRATED, atom, 
                                            (N,ny,nx), '', filters)
 
             c1[:,i,j] = var[VAR_CALIBRATED].values

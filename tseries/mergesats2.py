@@ -37,8 +37,8 @@ args = parser.parse_args()
 def get_output_dimensions(fnames):
     N = 0
     for fname in fnames:
-        f = tb.openFile(fname, 'r')
-        dh_mean = f.getNode('/dh_mean')
+        f = tb.open_file(fname, 'r')
+        dh_mean = f.get_node('/dh_mean')
         nt, ny, nx = dh_mean.shape
         N += nt
         f.close()

@@ -27,7 +27,7 @@ Notes
 
 Examples
 --------
-$ python averagets2.py /data/alt/ra/ers1/hdf/antarctica/xovers/*_grids.h5
+$ python averagets2.py /data/alt/ra/ers1/hdf/antarctica/grids_ice+oce/*_grids.h5
 
 """
 # Fernando Paolo <fpaolo@ucsd.edu>

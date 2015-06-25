@@ -7,10 +7,9 @@ import altimpy as ap
 ap.rcparams()
 
 #fname = 'gisst.dat'
-fname = '/Users/fpaolo/data/shelves/amundsen/test/amundsen_seasonal_grad_mat.txt'
-#fname = '/Users/fpaolo/data/shelves/all/all_seasonal_mat.txt'
+fname = '/Users/fpaolo/data/shelves/paolo_variability/wais_bscor_standard.txt'
 
-WINDOW = 26
+WINDOW = 72
 
 
 # plot PCs
@@ -57,5 +56,3 @@ d.plot(subplots=True, linewidth=2, legend=False, title='MSSA PCs (Modes)',
        yticks=[], xlim=[d.index[0],d.index[-1]])
 
 plt.show()
-
-
