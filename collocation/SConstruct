@@ -1,0 +1,31 @@
+from os import system
+
+### file with observations
+file1 = '../../work/norte/grav/ship/grav_nav_res.txt' 
+
+### columns to be loaded from file1
+m = '-m0,1,2'
+
+### second file with observations
+file2 = '../../work/norte/ssg/ssg_a_res_reg.txt'
+
+### columns to be loaded from file2
+n = '-n0,1,2'
+
+### output file
+fileout = '-o/home/fspaolo/DATA/work/norte/covs/empir/cov_gg_res.txt'
+
+### number of distances to compute de covariances: s_k = 0,1,2,..,k-1
+k = '-k161'  #161
+
+### beginning of the interval calculation
+b = '-b0.0'
+
+### ending of the interval calculation
+e = '-e2.0125'  #2.0125
+
+### plots the results
+p = '-p'
+
+system('python covcalc.py %s %s %s %s %s %s %s' \
+       % (file1, m, fileout, k, b, e, p))

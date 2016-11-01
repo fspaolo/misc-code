@@ -1,0 +1,153 @@
+6 models (-52.00/-40.00/-6.00/6.00):
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_2m_res1.txt.test1
+
+real    451m55.212s
+user    313m54.853s
+sys     10m40.608s
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_2m_res1.txt.test2
+
+real	537m4.956s
+user	315m48.772s
+sys		10m23.899s
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_2m_res1.txt.test3
+
+real	452m26.492s
+user	315m6.986s
+sys		10m39.644s
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_2m_res1.txt.test4
+
+real	455m59.763s
+user	317m44.835s
+sys		10m45.392s
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_2m_res1.txt.test5
+
+real	522m19.169s
+user	313m56.813s
+sys		10m20.395s
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_2m_res1.txt.test6
+
+real	439m35.908s
+user	315m5.730s
+sys		10m39.748s
+
+===================================
+4 models (-52.00/-40.00/-6.00/6.00)
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_2m_res1.txt.test4
+
+real    339m26.224s
+user    315m11.630s
+sys     10m47.300s
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_2m_res1.txt.test3
+
+real    339m54.930s
+user    319m39.331s
+sys     10m48.893s
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_2m_res1.txt.test2
+
+real    333m17.962s
+user    318m45.403s
+sys     10m44.092s
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_2m_res1.txt.test1
+
+real    343m7.337s
+user    311m34.444s
+sys     10m35.736s
+
+===================================
+2 models (-52.00/-40.00/-6.00/6.00)
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_2m_res1.txt.test2
+
+real    320m10.836s
+user    310m21.136s
+sys     9m49.721s
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_2m_res1.txt.test1
+
+real    319m40.388s
+user    309m50.366s
+sys     9m49.465s
+
+===================================
+1 model (-52.00/-40.00/-6.00/6.00)
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_2m_res1.txt.test1
+
+real    318m50.040s
+user    309m50.738s
+sys     8m58.750s
+
+####################################
+satellite-only 2 x 2
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelss_2m_res1.txt.err
+
+real    296m57.795s
+user    280m39.460s
+sys     9m26.275s
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelss_2m_res2.txt.err
+[1]+  Done                    gvim time.log2
+
+real    397m2.865s
+user    383m50.219s
+sys     11m37.640s
+
+===================================
+integrated 1.5 x 1.5 
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_1.5m_res1.txt.err
+
+real    588m30.249s
+user    559m59.548s
+sys     20m58.087s
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_1.5m_res2.txt.err
+[1]+  Done                    gvim time.log2
+
+real    738m45.094s
+user    708m14.468s
+sys     22m38.009s
+
+===================================
+integrated 1 x 1
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_1m_res1.txt.err
+
+real    1353m1.193s
+user    1269m5.327s
+sys     67m19.428s
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/grav_modelcs_1m_res2.txt.err
+
+real    1683m14.886s
+user    1602m20.436s
+sys     66m14.880s
+
+===================================
+2 x 2 r = 0.25
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/models/grav_modelcs_2m_r0.25_res1.txt.err
+
+real    88m28.039s
+user    84m53.690s
+sys     3m1.795s
+
+===================================
+2 x 2 l = 0.62
+
+output [lon,lat,signal,error] -> /dados3/fspaolo/DATA/norte/grav/models/grav_modelcs_2m_l0.62_res1.txt.err
+
+real    300m17.596s
+user    290m20.005s
+sys     9m32.168s

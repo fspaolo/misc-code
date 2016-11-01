@@ -1,0 +1,72 @@
+OASIS
+
+-52/-40/-6/6 (res1)			NORTE
+
+grav_modelcs_1m:			1320m (22h)
+grav_modelcs_1.5m:			572m (9.5h)
+grav_modelcs_1.5m mul:		580m			ok
+grav_modelss_1.5m mul:		528m			ok
+grav_modelcs_2m mul:		385m			ok
+grav_modelss_2m:			290m (4.8h)
+grav_modelss_2m mul:		294m
+geoid_modelcs_2m mul:		319m (5.3h)		ok	
+geoid_modelcs_2m mul:		337m			ok	
+geoid_modelcs_2m mul:		323m
+grav_modelcs_2m mul:		320m
+grav_modelcs_2m mul:		381m			ok
+grav_modelcs_2m_r0.25:		87m	(1.45h)	
+grav_modelcs_2m_r0.25 mul:	103m			ok	
+grav_modelcs_2m_r0.5: 		1809m (30.1h)
+
+-40/-30/-6/6 (res2)
+
+grav_modelcs_2m mul:		428m
+grav_modelcs_2m mul:		511m
+grav_modelcs_2m mul:		517m
+grav_modelcs_2m mul:		407m
+geoid_modelcs_2m mul:		437m
+grav_modelss_2m mul:		389m
+grav_modelcs_2m_r0.25 mul:	126m			
+grav_modelcs_1.5m mul:		793m
+grav_modelss_1.5m mul:		788m
+geoid_modelcs_2m:			xx
+
+
+-54/-30/-16/-6 (res1)		CENTRO
+
+grav_modelcs_2m mul:		324m
+
+-54/-30/-24/-16 (res2)
+
+grav_modelcs_2m mul:		334m
+
+
+-54/-30/-29/-24	(res1)		SUL
+
+grav_modelcs_2m mul:		319m
+
+-54/-30/-34/-29	 (res2)
+
+grav_modelcs_2m mul:		362m
+
+
+
+###
+
+NEWTON
+
+grav_modelcs_1m:	22.4h (1346m)
+grav_modess:	
+geoid_modelcs_2m:	5.5h (330m)
+
+
+GRAVIMT
+
+-35/-30/-6/6
+grav_modelcs:
+grav_modelcs_1.5m:	12h (720m)
+grav_modelcs_2m:	6.9h (414m)
+grav_modelss_1m:	27.3h (1637m)
+grav_modelss_2m:	6.4h (382m)
+geoid_modelcs_1m:	27h (1627m)
+geoid_modelcs_2m:	7h (417m)
